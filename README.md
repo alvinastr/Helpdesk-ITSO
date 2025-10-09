@@ -59,3 +59,64 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+# Helpdesk ITSO
+
+Helpdesk ITSO is a Laravel-based ticket management system designed to streamline support processes and enhance user experience.
+
+## Features
+- **Ticket Management**: Create, update, and track tickets.
+- **Notifications**: Email and WhatsApp notifications for ticket updates.
+- **User Roles**: Admin and user roles with specific permissions.
+- **RESTful API**: API endpoints for integration.
+
+## Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/alvinastr/Helpdesk-ITSO.git
+   cd Helpdesk-ITSO
+   ```
+
+2. Install dependencies:
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. Set up the environment:
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. Configure the `.env` file with your database and mail settings.
+
+5. Run migrations and seed the database:
+   ```bash
+   php artisan migrate --seed
+   ```
+
+6. Start the development server:
+   ```bash
+   php artisan serve
+   ```
+
+## Usage
+- Access the application at `http://localhost:8000`.
+- Log in using the seeded admin credentials.
+
+## Testing
+Run the test suite:
+```bash
+php artisan test
+```
+
+## Contributing
+Contributions are welcome! Please follow these steps:
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Submit a pull request with a detailed description.
+
+## License
+This project is licensed under the MIT License. See the LICENSE file for details.
