@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Vite Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Enable or disable Vite for asset compilation. When disabled, the app
+    | will use CDN or pre-built assets instead of Vite compilation.
+    |
+    */
+
+    'vite_enabled' => env('VITE_ENABLED', true),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
