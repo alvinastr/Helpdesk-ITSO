@@ -78,7 +78,7 @@ class TicketService
             // Step 3: Create ticket
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
-                'user_id' => Auth::id(), // Fixed: Use Auth facade
+                'user_id' => $data['user_id'] ?? Auth::id(), // Allow external users with null user_id
                 'user_name' => $standardizedData['user_name'],
                 'user_email' => $standardizedData['user_email'],
                 'user_phone' => $standardizedData['user_phone'] ?? null,
@@ -384,6 +384,7 @@ class TicketService
     public function createTicketFromEmail(array $emailData): Ticket
     {
         $ticketData = [
+            'user_id' => null, // External user, no user_id
             'user_name' => $emailData['from_name'],
             'user_email' => $emailData['from_email'],
             'subject' => $emailData['subject'],
@@ -400,6 +401,7 @@ class TicketService
     public function createTicketFromWhatsApp(array $whatsappData): Ticket
     {
         $ticketData = [
+            'user_id' => null, // External user, no user_id
             'user_name' => $whatsappData['from_name'] ?? 'WhatsApp User',
             'user_email' => '', // Will need to be collected later
             'user_phone' => $whatsappData['from_number'],
