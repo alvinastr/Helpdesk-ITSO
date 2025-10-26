@@ -27,12 +27,12 @@
                             <span class="badge bg-warning text-dark">{{ strtoupper($ticket->priority) }}</span>
                         </div>
                         <div class="col-md-6 text-end">
-                            <strong>Dibuat:</strong> {{ $ticket->created_at->format('d M Y H:i') }}<br>
+                            <strong>Dibuat:</strong> {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->created_at, 'd F Y H:i') }}<br>
                             @if($ticket->approved_at)
-                                <strong>Approved:</strong> {{ $ticket->approved_at->format('d M Y H:i') }}<br>
+                                <strong>Approved:</strong> {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->approved_at, 'd F Y H:i') }}<br>
                             @endif
                             @if($ticket->closed_at)
-                                <strong>Closed:</strong> {{ $ticket->closed_at->format('d M Y H:i') }}<br>
+                                <strong>Closed:</strong> {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->closed_at, 'd F Y H:i') }}<br>
                             @endif
                             @if($ticket->assignedUser)
                                 <strong>Handler:</strong> {{ $ticket->assignedUser->name }}<br>
@@ -79,7 +79,7 @@
                                 {{ $thread->sender_name }}
                                 <span class="badge bg-secondary">{{ ucfirst($thread->message_type) }}</span>
                             </strong>
-                            <small class="text-muted">{{ $thread->created_at->format('d M Y H:i') }}</small>
+                            <small class="text-muted">{{ \App\Helpers\DateHelper::formatDateIndonesian($thread->created_at, 'd F Y H:i') }}</small>
                         </div>
                         <div>{{ $thread->message }}</div>
                         
@@ -126,49 +126,6 @@
                         </button>
                     </form>
                 </div>
-            </div>
-            @endif
-
-            <!-- Feedback Form -->
-            @if($ticket->status == 'closed' && !$ticket->rating)
-            <div class="card mt-3">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Beri Rating & Feedback</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('tickets.feedback', $ticket) }}" method="POST">
-                        @csrf
-                        <div class="form-group mb-3">
-                            <label>Rating <span class="text-danger">*</span></label>
-                            <div class="rating">
-                                @for($i = 5; $i >= 1; $i--)
-                                    <input type="radio" name="rating" value="{{ $i }}" id="star{{ $i }}" required>
-                                    <label for="star{{ $i }}">⭐</label>
-                                @endfor
-                            </div>
-                        </div>
-                        <div class="form-group mb-3">
-                            <label>Feedback (optional)</label>
-                            <textarea class="form-control" name="feedback" rows="3" placeholder="Bagaimana pengalaman Anda?"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-success">
-                            <i class="fas fa-check"></i> Submit Feedback
-                        </button>
-                    </form>
-                </div>
-            </div>
-            @endif
-
-            @if($ticket->rating)
-            <div class="alert alert-info mt-3">
-                <strong>Your Rating:</strong> 
-                @for($i = 1; $i <= $ticket->rating; $i++)
-                    ⭐
-                @endfor
-                ({{ $ticket->rating }}/5)
-                @if($ticket->feedback)
-                    <br><strong>Feedback:</strong> {{ $ticket->feedback }}
-                @endif
             </div>
             @endif
         </div>

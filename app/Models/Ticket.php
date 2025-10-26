@@ -16,9 +16,17 @@ class Ticket extends Model
         'user_name',
         'user_email',
         'user_phone',
+        'reporter_nip',
+        'reporter_name',
+        'reporter_email',
+        'reporter_phone',
+        'reporter_department',
+        'reporter_position',
         'channel',
+        'input_method',
         'subject',
         'description',
+        'original_message',
         'category',
         'priority',
         'status',
@@ -26,10 +34,9 @@ class Ticket extends Model
         'resolution_notes',
         'assigned_to',
         'approved_by',
+        'created_by_admin',
         'approved_at',
-        'closed_at',
-        'rating',
-        'feedback'
+        'closed_at'
     ];
     
     protected $casts = [
@@ -49,6 +56,10 @@ class Ticket extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+    public function createdByAdmin()
+    {
+        return $this->belongsTo(User::class, 'created_by_admin');
     }
     public function threads()
     {

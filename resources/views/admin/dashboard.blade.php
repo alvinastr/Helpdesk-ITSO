@@ -1,8 +1,36 @@
 @extends('layouts.app-production')
 
 @section('content')
-<div class="container-fluid">
-    <h2 class="mb-4">Admin Dashboard</h2>
+<style>
+/* Force light theme for dashboard */
+.dashboard-container * {
+    color-scheme: light !important;
+}
+.dashboard-container .card {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #dee2e6 !important;
+}
+.dashboard-container .table {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+.dashboard-container .table thead th {
+    background-color: #f8f9fa !important;
+    color: #212529 !important;
+}
+.dashboard-container .table tbody tr {
+    background-color: #ffffff !important;
+    color: #212529 !important;
+}
+.dashboard-container .table tbody td {
+    background-color: transparent !important;
+    color: #212529 !important;
+}
+</style>
+
+<div class="container-fluid dashboard-container">
+    <h2 class="mb-4">{{ __('app.Dashboard') }} Admin</h2>
 
     <!-- Statistics Cards -->
     <div class="row mb-4">
@@ -10,7 +38,7 @@
             <div class="card text-white bg-warning">
                 <div class="card-body">
                     <h3>{{ $stats['pending_review'] }}</h3>
-                    <p>Pending Review</p>
+                    <p>{{ __('app.Pending Review') }}</p>
                 </div>
             </div>
         </div>
@@ -18,7 +46,7 @@
             <div class="card text-white bg-primary">
                 <div class="card-body">
                     <h3>{{ $stats['open'] }}</h3>
-                    <p>Open Tickets</p>
+                    <p>{{ __('app.Open Tickets') }}</p>
                 </div>
             </div>
         </div>
@@ -26,7 +54,7 @@
             <div class="card text-white bg-info">
                 <div class="card-body">
                     <h3>{{ $stats['resolved'] }}</h3>
-                    <p>Resolved</p>
+                    <p>{{ __('app.Resolved') }}</p>
                 </div>
             </div>
         </div>
@@ -34,26 +62,7 @@
             <div class="card text-white bg-success">
                 <div class="card-body">
                     <h3>{{ $stats['closed_today'] }}</h3>
-                    <p>Closed Today</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Avg Resolution Time</h5>
-                    <h3>{{ $stats['avg_resolution_time'] }} hours</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Customer Satisfaction</h5>
-                    <h3>{{ number_format($stats['satisfaction_score'], 1) }} / 5.0</h3>
+                    <p>{{ __('app.Closed Today') }}</p>
                 </div>
             </div>
         </div>
@@ -62,20 +71,20 @@
     <!-- Recent Tickets -->
     <div class="card">
         <div class="card-header">
-            <h5>Recent Tickets</h5>
+            <h5>{{ __('app.Recent Tickets') }}</h5>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Ticket ID</th>
-                            <th>User</th>
-                            <th>Subject</th>
-                            <th>Status</th>
-                            <th>Priority</th>
-                            <th>Created</th>
-                            <th>Action</th>
+                            <th>ID Tiket</th>
+                            <th>Pengguna</th>
+                            <th>{{ __('app.Subject') }}</th>
+                            <th>{{ __('app.Status') }}</th>
+                            <th>{{ __('app.Priority') }}</th>
+                            <th>{{ __('app.Created') }}</th>
+                            <th>Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,7 +92,7 @@
                         <tr>
                             <td>{{ $ticket->ticket_number }}</td>
                             <td>{{ $ticket->user_name }}</td>
-                            <td>{{ Str::limit($ticket->subject, 40) }}</td>
+                            <td>{{ strlen($ticket->subject) > 40 ? substr($ticket->subject, 0, 40) . '...' : $ticket->subject }}</td>
                             <td>
                                 <span class="badge bg-{{ $ticket->status == 'open' ? 'primary' : 'secondary' }}">
                                     {{ $ticket->status }}
@@ -94,10 +103,10 @@
                                     {{ $ticket->priority }}
                                 </span>
                             </td>
-                            <td>{{ $ticket->created_at->diffForHumans() }}</td>
+                            <td>{{ \App\Helpers\DateHelper::diffForHumansIndonesian($ticket->created_at) }}</td>
                             <td>
                                 <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-sm btn-primary">
-                                    View
+                                    {{ __('app.View') }}
                                 </a>
                             </td>
                         </tr>

@@ -56,22 +56,6 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-warning">
-                <div class="card-body">
-                    <h3>{{ number_format($data['avg_rating'], 1) }}</h3>
-                    <p class="mb-0">Avg Rating</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-white bg-info">
-                <div class="card-body">
-                    <h3>{{ $data['resolution_times']['avg'] }}h</h3>
-                    <p class="mb-0">Avg Resolution Time</p>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Charts -->
@@ -188,33 +172,6 @@
                             @endforeach
                         </tbody>
                     </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Resolution Times -->
-    <div class="row">
-        <div class="col-md-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5>Resolution Time Statistics</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-md-4">
-                            <h3>{{ $data['resolution_times']['avg'] }} hours</h3>
-                            <p class="text-muted">Average</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3>{{ $data['resolution_times']['min'] }} hours</h3>
-                            <p class="text-muted">Minimum</p>
-                        </div>
-                        <div class="col-md-4">
-                            <h3>{{ $data['resolution_times']['max'] }} hours</h3>
-                            <p class="text-muted">Maximum</p>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>

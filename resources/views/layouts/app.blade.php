@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }} - Helpdesk System</title>
+    <title>{{ config('app.name', 'ITSO') }} - Helpdesk System</title>
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
@@ -30,21 +30,6 @@
         }
         .card {
             box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-        }
-        .rating input[type="radio"] {
-            display: none;
-        }
-        .rating label {
-            cursor: pointer;
-            font-size: 2rem;
-            color: #ddd;
-        }
-        .rating input[type="radio"]:checked ~ label {
-            color: #ffc107;
-        }
-        .rating label:hover,
-        .rating label:hover ~ label {
-            color: #ffc107;
         }
     </style>
 

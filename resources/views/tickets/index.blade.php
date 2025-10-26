@@ -5,9 +5,9 @@
     <div class="row mb-3">
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center">
-                <h2>My Tickets</h2>
+                <h2>{{ __('app.My Tickets') }}</h2>
                 <a href="{{ route('tickets.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Buat Ticket Baru
+                    <i class="fas fa-plus"></i> {{ __('app.Create Ticket') }}
                 </a>
             </div>
         </div>
@@ -34,12 +34,12 @@
                 <div class="col-md-3">
                     <select name="status" class="form-control">
                         <option value="">Semua Status</option>
-                        <option value="pending_review" {{ request('status') == 'pending_review' ? 'selected' : '' }}>Pending Review</option>
-                        <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>Open</option>
-                        <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                        <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                        <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
-                        <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                        <option value="pending_review" {{ request('status') == 'pending_review' ? 'selected' : '' }}>{{ __('app.pending_review') }}</option>
+                        <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>{{ __('app.open') }}</option>
+                        <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>{{ __('app.in_progress') }}</option>
+                        <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>{{ __('app.resolved') }}</option>
+                        <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>{{ __('app.closed') }}</option>
+                        <option value="rejected" {{ request('status') == 'rejected' ? 'selected' : '' }}>{{ __('app.rejected') }}</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -74,7 +74,7 @@
                         <div class="d-flex gap-2">
                             <span class="badge bg-secondary">{{ $ticket->ticket_number }}</span>
                             <span class="badge bg-info">{{ ucfirst($ticket->channel) }}</span>
-                            <span class="badge bg-warning text-dark">{{ ucfirst($ticket->priority) }}</span>
+                            <span class="badge bg-warning text-dark">@translatePriority($ticket->priority)</span>
                             @if($ticket->category)
                                 <span class="badge bg-primary">{{ $ticket->category }}</span>
                             @endif
@@ -88,14 +88,14 @@
                             @else bg-secondary
                             @endif
                             mb-2">
-                            {{ strtoupper(str_replace('_', ' ', $ticket->status)) }}
+                            @translateStatus($ticket->status)
                         </span>
                         <br>
-                        <small class="text-muted">{{ $ticket->created_at->diffForHumans() }}</small>
+                        <small class="text-muted">{{ \App\Helpers\DateHelper::diffForHumansIndonesian($ticket->created_at) }}</small>
                         <br>
                         @if($ticket->threads()->count() > 1)
                             <small class="text-info">
-                                <i class="fas fa-comments"></i> {{ $ticket->threads()->count() }} replies
+                                <i class="fas fa-comments"></i> {{ $ticket->threads()->count() }} balasan
                             </small>
                         @endif
                     </div>
@@ -110,8 +110,8 @@
         </div>
     @else
         <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle"></i> Belum ada ticket. 
-            <a href="{{ route('tickets.create') }}" class="alert-link">Buat ticket pertama Anda</a>
+            <i class="fas fa-info-circle"></i> Belum ada tiket. 
+            <a href="{{ route('tickets.create') }}" class="alert-link">{{ __('app.Create Ticket') }}</a>
         </div>
     @endif
 </div>

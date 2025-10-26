@@ -5,7 +5,6 @@ echo "🚀 Deploying Laravel ITSO Helpdesk to Production..."
 
 # Set environment
 export APP_ENV=production
-export VITE_ENABLED=false
 
 # Copy production environment
 cp .env.production .env

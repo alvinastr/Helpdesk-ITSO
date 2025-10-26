@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Laravel') }}</title>
+    <title>{{ config('app.name', 'ITSO') }}</title>
 
     @if(app()->environment('production'))
         <!-- Bootstrap CSS via CDN for Production -->
@@ -21,8 +21,9 @@
             }
         </style>
     @else
-        <!-- Development: Use Vite -->
-        @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+        <!-- Development: Use asset() helper -->
+        <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+        <script src="{{ asset('js/app.js') }}"></script>
     @endif
 </head>
 <body>

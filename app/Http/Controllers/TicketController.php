@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 use App\Http\Requests\TicketRequest;
+use Illuminate\Support\Facades\Auth;
 
 class TicketController extends Controller
 {
@@ -23,8 +24,8 @@ class TicketController extends Controller
     {
         $query = Ticket::query();
 
-        if (auth()->user()->role !== 'admin') {
-            $query->where('user_id', auth()->id());
+        if (Auth::user()->role !== 'admin') {
+            $query->where('user_id', Auth::id());
         }
 
         // Filter by status
@@ -63,9 +64,16 @@ class TicketController extends Controller
     {
         try {
             $data = $request->validated();
-            $data['user_name'] = auth()->user()->name;
-            $data['user_email'] = auth()->user()->email;
-            $data['channel'] = 'portal';
+            
+            // Set user data from authenticated user (for system tracking)
+            $data['user_id'] = Auth::id();
+            $data['user_name'] = Auth::user()->name;
+            $data['user_email'] = Auth::user()->email;
+            $data['user_phone'] = Auth::user()->phone ?? null;
+            
+            // Default values for user-created tickets
+            $data['channel'] = $data['channel'] ?? 'portal';
+            $data['input_method'] = $data['input_method'] ?? 'manual';
 
             $ticket = $this->ticketService->createTicket($data);
 
@@ -85,7 +93,7 @@ class TicketController extends Controller
     public function show(Ticket $ticket)
     {
         // Authorization check
-        if (auth()->user()->role !== 'admin' && $ticket->user_id !== auth()->id()) {
+        if (Auth::user()->role !== 'admin' && $ticket->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
 
@@ -99,10 +107,12 @@ class TicketController extends Controller
     /**
      * Reply to ticket
      */
-    public function reply(Request $request, Ticket $ticket)
+    public function reply(Request $request, $ticketId)
     {
+        $ticket = Ticket::findOrFail($ticketId);
+
         // Authorization check
-        if (auth()->user()->role !== 'admin' && $ticket->user_id !== auth()->id()) {
+        if (Auth::user()->role !== 'admin' && $ticket->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
         }
 
@@ -124,42 +134,20 @@ class TicketController extends Controller
         }
 
         $this->ticketService->addThreadMessage($ticket, [
-            'sender_type' => auth()->user()->role === 'admin' ? 'admin' : 'user',
-            'sender_id' => auth()->id(),
-            'sender_name' => auth()->user()->name,
+            'sender_type' => Auth::user()->role === 'admin' ? 'admin' : 'user',
+            'sender_id' => Auth::id(),
+            'sender_name' => Auth::user()->name,
             'message_type' => 'reply',
             'message' => $request->message,
             'attachments' => !empty($attachments) ? $attachments : null
         ]);
 
         // Auto-update status if needed
-        if ($ticket->status === 'resolved' && auth()->user()->role !== 'admin') {
+        if ($ticket->status === 'resolved' && Auth::user()->role !== 'admin') {
             $this->ticketService->updateStatus($ticket, 'in_progress', 'User replied after resolution');
         }
 
         return back()->with('success', 'Reply berhasil ditambahkan!');
     }
 
-    /**
-     * Submit feedback
-     */
-    public function feedback(Request $request, Ticket $ticket)
-    {
-        $request->validate([
-            'rating' => 'required|integer|min:1|max:5',
-            'feedback' => 'nullable|string|max:1000'
-        ]);
-
-        if ($ticket->status !== 'closed') {
-            return back()->with('error', 'Feedback hanya bisa diberikan untuk ticket yang sudah closed');
-        }
-
-        $this->ticketService->addFeedback(
-            $ticket, 
-            $request->rating, 
-            $request->feedback
-        );
-
-        return back()->with('success', 'Terima kasih atas feedback Anda!');
-    }
 }

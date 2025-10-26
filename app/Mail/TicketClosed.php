@@ -20,7 +20,7 @@ class TicketClosed extends Mailable
 
     public function build()
     {
-        return $this->subject("Ticket Closed - Beri Rating! {$this->ticket->ticket_number}")
+        return $this->subject("Ticket Closed - {$this->ticket->ticket_number}")
                     ->markdown('emails.tickets.closed');
     }
 }

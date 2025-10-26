@@ -113,13 +113,9 @@
                                         <h6 class="mb-0">System Stats</h6>
                                     </div>
                                     <div class="card-body">
-                                        <p class="mb-1">
-                                            <strong>Avg Resolution Time:</strong> 
-                                            {{ number_format($stats['avg_resolution_time'] ?? 0, 1) }} hours
-                                        </p>
                                         <p class="mb-0">
-                                            <strong>Satisfaction Score:</strong> 
-                                            {{ number_format($stats['satisfaction_score'] ?? 0, 1) }}/5
+                                            <strong>Recent Activity:</strong> 
+                                            {{ $recentTickets->count() }} tickets updated today
                                         </p>
                                     </div>
                                 </div>

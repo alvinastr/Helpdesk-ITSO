@@ -28,8 +28,6 @@ class TicketResource extends JsonResource
             'status' => $this->status,
             'rejection_reason' => $this->rejection_reason,
             'resolution_notes' => $this->resolution_notes,
-            'rating' => $this->rating,
-            'feedback' => $this->feedback,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             'approved_at' => $this->approved_at,

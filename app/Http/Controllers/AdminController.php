@@ -6,6 +6,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AdminController extends Controller
 {
@@ -27,10 +28,7 @@ class AdminController extends Controller
             'open' => Ticket::whereIn('status', ['open', 'in_progress'])->count(),
             'resolved' => Ticket::where('status', 'resolved')->count(),
             'closed_today' => Ticket::where('status', 'closed')
-                ->whereDate('closed_at', today())->count(),
-            'avg_resolution_time' => $this->calculateAvgResolutionTime(),
-            'satisfaction_score' => Ticket::whereNotNull('rating')
-                ->avg('rating')
+                ->whereDate('closed_at', today())->count()
         ];
 
         $recentTickets = Ticket::with('user')
@@ -155,21 +153,59 @@ class AdminController extends Controller
     }
 
     /**
-     * Calculate average resolution time
+     * Show form for admin to create ticket
      */
-    protected function calculateAvgResolutionTime()
+    public function createTicket()
     {
-        $tickets = Ticket::where('status', 'closed')
-            ->whereNotNull('closed_at')
-            ->get();
+        return view('admin.create-ticket');
+    }
 
-        if ($tickets->isEmpty()) return 0;
+    /**
+     * Store ticket created by admin
+     */
+    public function storeTicket(\App\Http\Requests\AdminTicketRequest $request)
+    {
+        try {
+            $data = $request->validated();
+            
+            // Add admin info
+            $data['created_by_admin'] = Auth::id();
+            
+            // If input method is manual, set user data same as reporter
+            if ($data['input_method'] === 'manual') {
+                $data['user_name'] = $data['reporter_name'];
+                $data['user_email'] = $data['reporter_email'];
+                $data['user_phone'] = $data['reporter_phone'];
+                $data['user_id'] = null; // External user
+            }
 
-        $totalHours = 0;
-        foreach ($tickets as $ticket) {
-            $totalHours += $ticket->created_at->diffInHours($ticket->closed_at);
+            $ticket = $this->ticketService->createTicketByAdmin($data);
+
+            return redirect()
+                ->route('admin.tickets.show', $ticket)
+                ->with('success', "Ticket {$ticket->ticket_number} berhasil dibuat!");
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Gagal membuat ticket: ' . $e->getMessage());
         }
+    }
 
-        return round($totalHours / $tickets->count(), 1);
+    /**
+     * Show ticket details for admin
+     */
+    public function showTicket(Ticket $ticket)
+    {
+        $ticket->load([
+            'threads' => function($query) {
+                $query->orderBy('created_at', 'asc');
+            }, 
+            'statusHistories.changedBy', 
+            'assignedUser', 
+            'approvedBy',
+            'createdByAdmin'
+        ]);
+
+        return view('admin.ticket-detail', compact('ticket'));
     }
 }

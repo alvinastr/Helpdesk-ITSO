@@ -134,7 +134,7 @@ class WhatsAppService
             
             'resolved' => "✅ *Ticket Resolved*\n\nHalo {$ticket->user_name},\n\nTicket Anda telah diselesaikan:\n📋 ID: {$ticket->ticket_number}\n📝 Subject: {$ticket->subject}\n✅ Status: RESOLVED\n\nMohon konfirmasi apakah masalah sudah teratasi.",
             
-            'closed' => "✅ *Ticket Closed*\n\nHalo {$ticket->user_name},\n\nTicket Anda telah ditutup:\n📋 ID: {$ticket->ticket_number}\n📝 Subject: {$ticket->subject}\n✅ Status: CLOSED\n\n⭐ Mohon beri rating & feedback kami!\n\nTerima kasih telah menggunakan layanan kami.",
+            'closed' => "✅ *Ticket Closed*\n\nHalo {$ticket->user_name},\n\nTicket Anda telah ditutup:\n📋 ID: {$ticket->ticket_number}\n📝 Subject: {$ticket->subject}\n✅ Status: CLOSED\n\nTerima kasih telah menggunakan layanan kami.",
         ];
 
         return $messages[$type] ?? "Update untuk ticket {$ticket->ticket_number}";

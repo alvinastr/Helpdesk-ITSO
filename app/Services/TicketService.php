@@ -78,13 +78,28 @@ class TicketService
             // Step 3: Create ticket
             $ticket = Ticket::create([
                 'ticket_number' => $ticketNumber,
-                'user_id' => $data['user_id'] ?? Auth::id(), // Allow external users with null user_id
+                'user_id' => $data['user_id'] ?? Auth::id(),
                 'user_name' => $standardizedData['user_name'],
                 'user_email' => $standardizedData['user_email'],
                 'user_phone' => $standardizedData['user_phone'] ?? null,
+                
+                // Reporter data
+                'reporter_nip' => $data['reporter_nip'] ?? null,
+                'reporter_name' => $data['reporter_name'] ?? null,
+                'reporter_email' => $data['reporter_email'] ?? null,
+                'reporter_phone' => isset($data['reporter_phone']) ? $this->normalizePhone($data['reporter_phone']) : null,
+                'reporter_department' => $data['reporter_department'] ?? null,
+                'reporter_position' => $data['reporter_position'] ?? null,
+                
                 'channel' => $standardizedData['channel'],
+                'input_method' => $data['input_method'] ?? 'manual',
                 'subject' => $standardizedData['subject'],
                 'description' => $standardizedData['description'],
+                'original_message' => $data['original_message'] ?? null,
+                'category' => $data['category'] ?? null,
+                'priority' => $data['priority'] ?? 'medium',
+                'assigned_to' => $data['assigned_to'] ?? null,
+                'created_by_admin' => $data['created_by_admin'] ?? null,
                 'status' => 'pending_keluhan'
             ]);
 
@@ -119,18 +134,88 @@ class TicketService
     }
 
     /**
+     * Create ticket by admin (with reporter data)
+     */
+    public function createTicketByAdmin(array $data): Ticket
+    {
+        return DB::transaction(function () use ($data) {
+            // Step 1: Generate Ticket ID
+            $ticketNumber = $this->generateTicketNumber();
+
+            // Step 2: Standardize data
+            $standardizedData = $this->standardizeData($data);
+
+            // Step 3: Create ticket with reporter data
+            $ticket = Ticket::create([
+                'ticket_number' => $ticketNumber,
+                'user_id' => $data['user_id'] ?? null, // External user
+                'user_name' => $standardizedData['user_name'],
+                'user_email' => $standardizedData['user_email'],
+                'user_phone' => $standardizedData['user_phone'] ?? null,
+                
+                // Reporter data
+                'reporter_nip' => $data['reporter_nip'],
+                'reporter_name' => $data['reporter_name'],
+                'reporter_email' => $data['reporter_email'] ?? null,
+                'reporter_phone' => isset($data['reporter_phone']) ? $this->normalizePhone($data['reporter_phone']) : null,
+                'reporter_department' => $data['reporter_department'],
+                'reporter_position' => null, // Tidak digunakan lagi
+                
+                'channel' => $data['channel'],
+                'input_method' => $data['input_method'],
+                'subject' => $standardizedData['subject'],
+                'description' => $standardizedData['description'],
+                'original_message' => $data['original_message'] ?? null,
+                'category' => $data['category'] ?? null,
+                'priority' => $data['priority'] ?? 'medium',
+                'assigned_to' => null, // Tidak digunakan lagi
+                'created_by_admin' => $data['created_by_admin'],
+                'status' => 'pending_review' // Skip validation for admin-created tickets
+            ]);
+
+            // Step 4: Create initial thread
+            $this->addThreadMessage($ticket, [
+                'sender_type' => 'admin',
+                'sender_name' => Auth::user()->name,
+                'message_type' => 'note',
+                'message' => "Ticket dibuat oleh admin atas nama: {$data['reporter_name']} (NIP: {$data['reporter_nip']})"
+            ]);
+
+            // Step 5: Create reporter message thread
+            $this->addThreadMessage($ticket, [
+                'sender_type' => 'user',
+                'sender_name' => $data['reporter_name'],
+                'message_type' => 'complaint',
+                'message' => $standardizedData['description']
+            ]);
+
+            // Step 6: Auto-categorize if not set
+            if (!$ticket->category) {
+                $this->autoCategorize($ticket);
+            }
+
+            // Step 7: Send notification
+            $this->notificationService->sendTicketReceived($ticket);
+
+            return $ticket;
+        });
+    }
+
+    /**
      * Standardize input data
      */
     protected function standardizeData(array $data): array
     {
-        return [
-            'user_name' => trim($data['user_name']),
-            'user_email' => strtolower(trim($data['user_email'])),
-            'user_phone' => $this->normalizePhone($data['user_phone'] ?? null),
+        $standardized = [
+            'user_name' => trim($data['user_name'] ?? $data['reporter_name'] ?? ''),
+            'user_email' => strtolower(trim($data['user_email'] ?? $data['reporter_email'] ?? '')),
+            'user_phone' => $this->normalizePhone($data['user_phone'] ?? $data['reporter_phone'] ?? null),
             'channel' => $data['channel'] ?? 'portal',
             'subject' => trim($data['subject']),
             'description' => trim($data['description'])
         ];
+
+        return $standardized;
     }
 
     /**
@@ -157,7 +242,7 @@ class TicketService
         return TicketThread::create([
             'ticket_id' => $ticket->id,
             'sender_type' => $data['sender_type'] ?? 'user',
-            'sender_id' => $data['sender_id'] ?? Auth::id(), // Fixed: Use Auth facade
+            'sender_id' => $data['sender_id'] ?? Auth::id(),
             'sender_name' => $data['sender_name'],
             'message_type' => $data['message_type'] ?? 'reply',
             'message' => $data['message'],
@@ -172,7 +257,16 @@ class TicketService
     {
         $oldStatus = $ticket->status;
 
-        $ticket->update(['status' => $newStatus]);
+        // Prepare update data
+        $updateData = ['status' => $newStatus];
+        
+        // Add specific fields based on status
+        if ($newStatus === 'closed') {
+            $updateData['closed_at'] = now();
+            $updateData['closed_by'] = Auth::id();
+        }
+
+        $ticket->update($updateData);
 
         // Record status history
         TicketStatusHistory::create([
@@ -239,14 +333,36 @@ class TicketService
     /**
      * Reject ticket
      */
-    public function rejectTicket(Ticket $ticket, string $reason): Ticket
+    public function rejectTicket(Ticket $ticket, string $reason, $admin = null): Ticket
     {
-        $ticket->update([
-            'status' => 'rejected',
-            'rejection_reason' => $reason
-        ]);
+        $adminId = $admin ? $admin->id : Auth::id();
+        $adminName = $admin ? $admin->name : Auth::user()->name;
 
-        $this->notificationService->sendTicketRejected($ticket);
+        DB::transaction(function () use ($ticket, $reason, $adminId, $adminName) {
+            // Update status using updateStatus method (this will create status history)
+            $this->updateStatus($ticket, 'rejected', 'Ticket rejected by admin');
+
+            // Update additional fields
+            $ticket->update([
+                'rejection_reason' => $reason,
+                'rejected_by' => $adminId,
+                'rejected_at' => now()
+            ]);
+
+            // Refresh ticket to ensure we have the latest data
+            $ticket->refresh();
+
+            // Add thread message
+            $this->addThreadMessage($ticket, [
+                'sender_type' => 'system',
+                'sender_id' => $adminId,
+                'sender_name' => $adminName,
+                'message_type' => 'note',
+                'message' => 'Ticket has been rejected. Reason: ' . $reason
+            ]);
+
+            $this->notificationService->sendTicketRejected($ticket);
+        });
 
         return $ticket;
     }
@@ -254,19 +370,30 @@ class TicketService
     /**
      * Admin approve ticket
      */
-    public function approveTicket(Ticket $ticket, ?int $assignedTo = null): Ticket
+    public function approveTicket(Ticket $ticket, $admin = null, ?int $assignedTo = null): Ticket
     {
-        DB::transaction(function () use ($ticket, $assignedTo) {
+        $adminId = $admin ? $admin->id : Auth::id();
+        $adminName = $admin ? $admin->name : Auth::user()->name;
+
+        DB::transaction(function () use ($ticket, $assignedTo, $adminId, $adminName) {
+            // Update status using updateStatus method (this will create status history)
+            $this->updateStatus($ticket, 'open', 'Ticket approved by admin');
+
+            // Update additional fields
             $ticket->update([
-                'status' => 'open',
-                'approved_by' => Auth::id(), // Fixed: Use Auth facade
+                'approved_by' => $adminId,
                 'approved_at' => now(),
                 'assigned_to' => $assignedTo
             ]);
 
+            // Refresh ticket to ensure we have the latest data
+            $ticket->refresh();
+
+            // Then add thread message
             $this->addThreadMessage($ticket, [
                 'sender_type' => 'system',
-                'sender_name' => 'Admin',
+                'sender_id' => $adminId,
+                'sender_name' => $adminName,
                 'message_type' => 'note',
                 'message' => 'Ticket has been approved and is now open.'
             ]);
@@ -280,19 +407,26 @@ class TicketService
     /**
      * Request revision from user
      */
-    public function requestRevision(Ticket $ticket, string $message): Ticket
+    public function requestRevision(Ticket $ticket, string $message, $admin = null): Ticket
     {
-        // Fixed: Add null check for auth()->user()
-        $userName = Auth::check() ? Auth::user()->name : 'Admin';
+        $adminId = $admin ? $admin->id : Auth::id();
+        $adminName = $admin ? $admin->name : Auth::user()->name;
 
-        $this->addThreadMessage($ticket, [
-            'sender_type' => 'admin',
-            'sender_name' => $userName,
-            'message_type' => 'note',
-            'message' => "Revision requested: {$message}"
-        ]);
+        DB::transaction(function () use ($ticket, $message, $adminId, $adminName) {
+            // Update status using updateStatus method (this will create status history)
+            $this->updateStatus($ticket, 'pending_revision', 'Revision requested by admin');
 
-        $this->notificationService->sendRevisionRequest($ticket, $message);
+            // Add thread message
+            $this->addThreadMessage($ticket, [
+                'sender_type' => 'admin',
+                'sender_id' => $adminId,
+                'sender_name' => $adminName,
+                'message_type' => 'note',
+                'message' => "Revision requested: {$message}"
+            ]);
+
+            $this->notificationService->sendRevisionRequest($ticket, $message);
+        });
 
         return $ticket;
     }
@@ -322,37 +456,36 @@ class TicketService
     /**
      * Close ticket
      */
-    public function closeTicket(Ticket $ticket, string $resolutionNotes): Ticket
+    public function closeTicket(Ticket $ticket, string $resolutionNotes, $admin = null): Ticket
     {
-        DB::transaction(function () use ($ticket, $resolutionNotes) {
+        $adminId = $admin ? $admin->id : Auth::id();
+        $adminName = $admin ? $admin->name : Auth::user()->name;
+
+        DB::transaction(function () use ($ticket, $resolutionNotes, $adminId, $adminName) {
+            // Update status using updateStatus method (this will create status history)
+            $this->updateStatus($ticket, 'closed', 'Ticket closed by admin');
+
+            // Update additional fields
             $ticket->update([
-                'status' => 'closed',
                 'closed_at' => now(),
-                'resolution_notes' => $resolutionNotes
+                'resolution_notes' => $resolutionNotes,
+                'closed_by' => $adminId
             ]);
 
+            // Refresh ticket to ensure we have the latest data
+            $ticket->refresh();
+
+            // Add thread message
             $this->addThreadMessage($ticket, [
                 'sender_type' => 'system',
-                'sender_name' => 'System',
+                'sender_id' => $adminId,
+                'sender_name' => $adminName,
                 'message_type' => 'resolution',
                 'message' => "Ticket closed. Resolution: {$resolutionNotes}"
             ]);
 
             $this->notificationService->sendTicketClosed($ticket);
         });
-
-        return $ticket;
-    }
-
-    /**
-     * Add feedback
-     */
-    public function addFeedback(Ticket $ticket, int $rating, ?string $feedback = null): Ticket
-    {
-        $ticket->update([
-            'rating' => $rating,
-            'feedback' => $feedback
-        ]);
 
         return $ticket;
     }
@@ -464,6 +597,33 @@ class TicketService
         if ($ticket->status === 'closed') {
             $this->updateStatus($ticket, 'open');
         }
+
+        return $ticket;
+    }
+
+    /**
+     * Assign ticket to another admin
+     */
+    public function assignTicket(Ticket $ticket, $assignee, $admin): Ticket
+    {
+        $ticket->update(['assigned_to' => $assignee->id]);
+
+        // Add thread message
+        $this->addThreadMessage($ticket, [
+            'sender_type' => 'admin',
+            'sender_name' => $admin->name,
+            'sender_id' => $admin->id,
+            'message_type' => 'note',
+            'message' => "Ticket di-assign ke {$assignee->name}"
+        ]);
+
+        // Record status history
+        TicketStatusHistory::create([
+            'ticket_id' => $ticket->id,
+            'status' => $ticket->status,
+            'notes' => "Assigned to {$assignee->name}",
+            'changed_by' => $admin->id
+        ]);
 
         return $ticket;
     }

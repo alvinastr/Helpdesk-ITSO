@@ -26,9 +26,7 @@ class ReportController extends Controller
             'by_status' => $this->getTicketsByStatus($startDate, $endDate),
             'by_category' => $this->getTicketsByCategory($startDate, $endDate),
             'by_channel' => $this->getTicketsByChannel($startDate, $endDate),
-            'by_priority' => $this->getTicketsByPriority($startDate, $endDate),
-            'avg_rating' => $this->getAverageRating($startDate, $endDate),
-            'resolution_times' => $this->getResolutionTimes($startDate, $endDate)
+            'by_priority' => $this->getTicketsByPriority($startDate, $endDate)
         ];
 
         return view('reports.index', compact('data', 'startDate', 'endDate'));
@@ -112,31 +110,5 @@ class ReportController extends Controller
             ->selectRaw('priority, count(*) as count')
             ->groupBy('priority')
             ->pluck('count', 'priority');
-    }
-
-    protected function getAverageRating($start, $end)
-    {
-        return Ticket::whereBetween('created_at', [$start, $end])
-            ->whereNotNull('rating')
-            ->avg('rating');
-    }
-
-    protected function getResolutionTimes($start, $end)
-    {
-        $tickets = Ticket::where('status', 'closed')
-            ->whereBetween('created_at', [$start, $end])
-            ->get();
-
-        $times = [];
-        foreach ($tickets as $ticket) {
-            $hours = $ticket->created_at->diffInHours($ticket->closed_at);
-            $times[] = $hours;
-        }
-
-        return [
-            'avg' => !empty($times) ? round(array_sum($times) / count($times), 1) : 0,
-            'min' => !empty($times) ? min($times) : 0,
-            'max' => !empty($times) ? max($times) : 0
-        ];
     }
 }
