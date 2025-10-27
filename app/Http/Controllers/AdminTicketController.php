@@ -107,11 +107,13 @@ class AdminTicketController extends Controller
         $ticket = Ticket::findOrFail($ticketId);
         
         $request->validate([
-            'status' => 'required|string|in:open,in_progress,resolved,closed'
+            'status' => 'required|string|in:open,in_progress,resolved',
+            'notes' => 'nullable|string|max:500'
         ]);
 
         try {
-            $this->ticketService->updateStatus($ticket, $request->status, 'Status updated by admin');
+            $notes = $request->notes ?? 'Status updated by admin';
+            $this->ticketService->updateStatus($ticket, $request->status, $notes);
             
             return redirect()->back()->with('success', 'Status ticket berhasil diupdate');
         } catch (\Exception $e) {

@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(function() {
         var alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
+            // Skip alerts with 'alert-persistent' class
+            if (alert.classList.contains('alert-persistent')) {
+                return;
+            }
             if (alert.classList.contains('alert-success') || alert.classList.contains('alert-info')) {
                 var bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();

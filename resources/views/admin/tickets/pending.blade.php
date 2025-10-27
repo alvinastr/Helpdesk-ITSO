@@ -11,39 +11,135 @@
     <div class="pending-tickets">
         @if($tickets->count() > 0)
             @foreach($tickets as $ticket)
-                <div class="card mb-3">
+                <div class="card mb-3 shadow-sm">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-8">
-                                <h5>{{ $ticket->ticket_number }} - {{ $ticket->subject }}</h5>
-                                <p><strong>{{ __('app.Status') }}:</strong> @translateStatus($ticket->status)</p>
-                                <p><strong>{{ __('app.Created') }}:</strong> {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->created_at) }}</p>
-                                <p><strong>User:</strong> {{ $ticket->user_name }} ({{ $ticket->user_email }})</p>
+                                <!-- Header with Priority Badge -->
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="mb-0">{{ $ticket->subject }}</h5>
+                                    <span class="badge bg-{{ $ticket->priority === 'high' ? 'danger' : ($ticket->priority === 'medium' ? 'warning' : 'secondary') }}">
+                                        {{ strtoupper($ticket->priority ?? 'MEDIUM') }}
+                                    </span>
+                                </div>
                                 
-                                @if($ticket->status === 'pending_keluhan')
-                                    <span class="badge bg-warning">{{ __('app.pending_keluhan') }}</span>
-                                @endif
-                                
-                                @if($ticket->status === 'pending_review')
-                                    <span class="badge bg-info">{{ __('app.pending_review') }}</span>
-                                @endif
+                                <!-- Badges Section -->
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-ticket-alt"></i> {{ $ticket->ticket_number }}
+                                    </span>
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-folder"></i> {{ $ticket->category ?? 'General' }}
+                                    </span>
+                                    <span class="badge bg-dark">
+                                        <i class="fas fa-{{ $ticket->channel === 'email' ? 'envelope' : ($ticket->channel === 'whatsapp' ? 'whatsapp' : 'desktop') }}"></i> 
+                                        {{ ucfirst($ticket->channel ?? 'portal') }}
+                                    </span>
+                                    @if($ticket->status === 'pending_review')
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-clock"></i> {{ __('app.pending_review') }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <!-- Reporter Info (Minimal) - PERSISTENT -->
+                                <div class="alert alert-light border mb-2 py-2 alert-persistent">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-user-circle"></i> Pelapor:
+                                            </small>
+                                            <strong>{{ $ticket->reporter_name ?? $ticket->user_name }}</strong>
+                                            @if($ticket->reporter_nip)
+                                                <span class="badge bg-secondary ms-1">{{ $ticket->reporter_nip }}</span>
+                                            @endif
+                                            @if($ticket->reporter_department)
+                                                <br><small class="text-muted">{{ $ticket->reporter_department }}</small>
+                                            @endif
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-clock"></i> Waktu Tunggu:
+                                            </small>
+                                            <strong class="text-warning">
+                                                {{ $ticket->created_at->diffForHumans() }}
+                                            </strong>
+                                            <br><small class="text-muted">{{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->created_at) }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- User Info -->
+                                <p class="mb-0 text-muted small">
+                                    <i class="fas fa-user"></i> <strong>User:</strong> {{ $ticket->user_name }} ({{ $ticket->user_email }})
+                                </p>
                             </div>
+                            
                             <div class="col-md-4">
-                                <div class="actions d-flex gap-2">
-                                    <form action="/admin/tickets/{{ $ticket->id }}/approve" method="POST" class="d-inline">
+                                <!-- View Details Button - Prominent -->
+                                <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                    <i class="fas fa-eye"></i> Lihat Detail Lengkap
+                                </a>
+                                
+                                <!-- Action Buttons -->
+                                <div class="d-flex flex-column gap-2">
+                                    <form action="/admin/tickets/{{ $ticket->id }}/approve" method="POST">
                                         @csrf
-                                        <button type="submit" class="btn btn-success">{{ __('app.Approve') }}</button>
+                                        <button type="submit" class="btn btn-success w-100">
+                                            <i class="fas fa-check"></i> {{ __('app.Approve') }}
+                                        </button>
                                     </form>
                                     
-                                    <form action="/admin/tickets/{{ $ticket->id }}/reject" method="POST" class="d-inline">
-                                        @csrf
-                                        <div class="input-group">
-                                            <input type="text" name="reason" class="form-control" placeholder="Alasan penolakan" required>
-                                            <button type="submit" class="btn btn-danger">{{ __('app.Reject') }}</button>
-                                        </div>
-                                    </form>
+                                    <button type="button" class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $ticket->id }}">
+                                        <i class="fas fa-times"></i> {{ __('app.Reject') }}
+                                    </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reject Modal -->
+                <div class="modal fade" id="rejectModal{{ $ticket->id }}" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <form action="/admin/tickets/{{ $ticket->id }}/reject" method="POST">
+                                @csrf
+                                <div class="modal-header bg-danger text-white">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-times-circle"></i> Tolak Tiket
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Tiket: <strong>{{ $ticket->ticket_number }}</strong></label>
+                                        <p class="text-muted small">{{ $ticket->subject }}</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="reason{{ $ticket->id }}" class="form-label">
+                                            Alasan Penolakan <span class="text-danger">*</span>
+                                        </label>
+                                        <textarea 
+                                            id="reason{{ $ticket->id }}"
+                                            name="reason" 
+                                            class="form-control" 
+                                            rows="4" 
+                                            required 
+                                            placeholder="Jelaskan alasan penolakan tiket ini..."
+                                        ></textarea>
+                                        <small class="text-muted">Alasan ini akan dikirim ke user via email</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        <i class="fas fa-times"></i> Batal
+                                    </button>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-check"></i> Ya, Tolak Tiket
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

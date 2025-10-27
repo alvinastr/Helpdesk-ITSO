@@ -14,9 +14,6 @@
                         Helpdesk
                         <span class="text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">System</span>
                     </h1>
-                    <p class="lead text-white mb-4" style="opacity: 0.9;">
-                        Solusi helpdesk modern untuk tim support yang efisien
-                    </p>
                 </div>
                 
                 <div class="d-flex justify-content-center justify-content-lg-start gap-3 flex-wrap mb-4">

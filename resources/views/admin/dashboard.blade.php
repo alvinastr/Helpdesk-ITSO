@@ -80,6 +80,7 @@
                         <tr>
                             <th>ID Tiket</th>
                             <th>Pengguna</th>
+                            <th>Pelapor</th>
                             <th>{{ __('app.Subject') }}</th>
                             <th>{{ __('app.Status') }}</th>
                             <th>{{ __('app.Priority') }}</th>
@@ -92,6 +93,16 @@
                         <tr>
                             <td>{{ $ticket->ticket_number }}</td>
                             <td>{{ $ticket->user_name }}</td>
+                            <td>
+                                @if($ticket->reporter_name)
+                                    <strong>{{ $ticket->reporter_name }}</strong><br>
+                                    @if($ticket->reporter_nip)
+                                        <small class="text-muted">NIP: {{ $ticket->reporter_nip }}</small>
+                                    @endif
+                                @else
+                                    <span class="text-muted">-</span>
+                                @endif
+                            </td>
                             <td>{{ strlen($ticket->subject) > 40 ? substr($ticket->subject, 0, 40) . '...' : $ticket->subject }}</td>
                             <td>
                                 <span class="badge bg-{{ $ticket->status == 'open' ? 'primary' : 'secondary' }}">

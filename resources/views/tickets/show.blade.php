@@ -40,15 +40,56 @@
                         </div>
                     </div>
 
+                    <!-- Data Pelapor (Reporter Information) - Only visible to Admin -->
+                    @if(Auth::check() && Auth::user()->role === 'admin')
+                        @if($ticket->reporter_name || $ticket->reporter_nip || $ticket->reporter_email || $ticket->reporter_phone)
+                        <div class="alert alert-info mb-3 alert-persistent" id="reporter-info-section" style="display: block !important;">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-user-circle"></i> <strong>Data Pelapor</strong>
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    @if($ticket->reporter_name)
+                                        <strong>Nama:</strong> {{ $ticket->reporter_name }}<br>
+                                    @endif
+                                    @if($ticket->reporter_nip)
+                                        <strong>NIP:</strong> {{ $ticket->reporter_nip }}<br>
+                                    @endif
+                                    @if($ticket->reporter_department)
+                                        <strong>Departemen:</strong> {{ $ticket->reporter_department }}<br>
+                                    @endif
+                                </div>
+                                <div class="col-md-6">
+                                    @if($ticket->reporter_position)
+                                        <strong>Jabatan:</strong> {{ $ticket->reporter_position }}<br>
+                                    @endif
+                                    @if($ticket->reporter_email)
+                                        <strong>Email:</strong> 
+                                        <a href="mailto:{{ $ticket->reporter_email }}">{{ $ticket->reporter_email }}</a><br>
+                                    @endif
+                                    @if($ticket->reporter_phone)
+                                        <strong>Telepon:</strong> 
+                                        <a href="tel:{{ $ticket->reporter_phone }}">{{ $ticket->reporter_phone }}</a><br>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @else
+                        <div class="alert alert-warning mb-3 alert-persistent">
+                            <i class="fas fa-exclamation-triangle"></i> <strong>Data Pelapor:</strong> Tidak ada data pelapor untuk ticket ini.
+                        </div>
+                        @endif
+                    @endif
+
                     @if($ticket->status == 'rejected')
-                        <div class="alert alert-danger">
+                        <div class="alert alert-danger alert-persistent">
                             <strong>Ticket Ditolak:</strong><br>
                             {{ $ticket->rejection_reason }}
                         </div>
                     @endif
 
                     @if($ticket->status == 'closed' && $ticket->resolution_notes)
-                        <div class="alert alert-success">
+                        <div class="alert alert-success alert-persistent">
                             <strong>Resolution:</strong><br>
                             {{ $ticket->resolution_notes }}
                         </div>
@@ -132,6 +173,63 @@
 
         <!-- Sidebar -->
         <div class="col-md-4">
+            <!-- Admin Actions -->
+            @if(Auth::check() && Auth::user()->role === 'admin')
+            <div class="card mb-3">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-user-shield"></i> Admin Actions</h5>
+                </div>
+                <div class="card-body">
+                    @if(!in_array($ticket->status, ['closed', 'rejected']))
+                        <!-- Update Status -->
+                        <div class="mb-3">
+                            <form action="{{ route('admin.tickets.update-status', $ticket) }}" method="POST">
+                                @csrf
+                                <label class="form-label"><strong>Update Status:</strong></label>
+                                <select name="status" class="form-select mb-2" required>
+                                    <option value="">-- Pilih Status --</option>
+                                    <option value="open" {{ $ticket->status == 'open' ? 'selected' : '' }}>Open</option>
+                                    <option value="in_progress" {{ $ticket->status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                    <option value="resolved" {{ $ticket->status == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                                </select>
+                                <textarea name="notes" class="form-control mb-2" placeholder="Catatan (opsional)" rows="2"></textarea>
+                                <button type="submit" class="btn btn-sm btn-primary w-100">
+                                    <i class="fas fa-sync"></i> Update Status
+                                </button>
+                            </form>
+                        </div>
+                        <hr>
+                    @endif
+
+                    @if($ticket->status == 'resolved' || $ticket->status == 'in_progress')
+                        <!-- Close Ticket -->
+                        <div class="mb-3">
+                            <button class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#closeTicketModal">
+                                <i class="fas fa-check-circle"></i> Close Ticket
+                            </button>
+                        </div>
+                        <hr>
+                    @endif
+
+                    @if(!in_array($ticket->status, ['closed', 'rejected']))
+                        <!-- Add Note -->
+                        <div class="mb-3">
+                            <button class="btn btn-info w-100" data-bs-toggle="modal" data-bs-target="#addNoteModal">
+                                <i class="fas fa-sticky-note"></i> Add Internal Note
+                            </button>
+                        </div>
+
+                        <!-- Assign Ticket -->
+                        <div class="mb-3">
+                            <button class="btn btn-warning w-100" data-bs-toggle="modal" data-bs-target="#assignTicketModal">
+                                <i class="fas fa-user-plus"></i> Assign to Admin
+                            </button>
+                        </div>
+                    @endif
+                </div>
+            </div>
+            @endif
+
             <div class="card mb-3">
                 <div class="card-header">
                     <h5>Status History</h5>
@@ -151,6 +249,123 @@
                     @endforeach
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Close Ticket Modal -->
+<div class="modal fade" id="closeTicketModal" tabindex="-1" aria-labelledby="closeTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.tickets.close', $ticket) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="closeTicketModalLabel">
+                        <i class="fas fa-check-circle"></i> Close Ticket
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> Pastikan masalah sudah terselesaikan sebelum menutup ticket.
+                    </div>
+                    <div class="mb-3">
+                        <label for="resolution_notes" class="form-label"><strong>Resolution Notes *</strong></label>
+                        <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="4" 
+                                  placeholder="Jelaskan bagaimana masalah diselesaikan..." 
+                                  required minlength="10" maxlength="1000"></textarea>
+                        <small class="text-muted">Minimal 10 karakter, maksimal 1000 karakter</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check-circle"></i> Close Ticket
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.tickets.add-note', $ticket) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title" id="addNoteModalLabel">
+                        <i class="fas fa-sticky-note"></i> Add Internal Note
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="message" class="form-label"><strong>Note *</strong></label>
+                        <textarea class="form-control" id="message" name="message" rows="4" 
+                                  placeholder="Tulis catatan internal..." 
+                                  required minlength="5" maxlength="1000"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="is_internal" value="1" id="is_internal" checked>
+                        <label class="form-check-label" for="is_internal">
+                            Internal note (tidak terlihat oleh user)
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-info">
+                        <i class="fas fa-save"></i> Simpan Note
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Ticket Modal -->
+<div class="modal fade" id="assignTicketModal" tabindex="-1" aria-labelledby="assignTicketModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{{ route('admin.tickets.assign', $ticket) }}" method="POST">
+                @csrf
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="assignTicketModalLabel">
+                        <i class="fas fa-user-plus"></i> Assign Ticket
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="user_id" class="form-label"><strong>Pilih Admin *</strong></label>
+                        <select class="form-select" id="user_id" name="user_id" required>
+                            <option value="">-- Pilih Admin --</option>
+                            @php
+                                $admins = \App\Models\User::where('role', 'admin')->get();
+                            @endphp
+                            @foreach($admins as $admin)
+                                <option value="{{ $admin->id }}" {{ $ticket->assigned_to == $admin->id ? 'selected' : '' }}>
+                                    {{ $admin->name }} ({{ $admin->email }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Batal
+                    </button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-user-check"></i> Assign
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

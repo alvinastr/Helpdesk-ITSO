@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Testing - Ticket Input Data</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 30px 0;
+        }
+        .test-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+            transition: transform 0.3s;
+        }
+        .test-card:hover {
+            transform: translateY(-5px);
+        }
+        .test-card.valid {
+            border-left: 5px solid #28a745;
+        }
+        .test-card.invalid {
+            border-left: 5px solid #dc3545;
+        }
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+        .valid .card-header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+        }
+        .invalid .card-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+        .badge-issue {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .code-wrapper {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="text-center text-white">
+                    <h1 class="display-4 mb-3">🧪 Manual Testing</h1>
+                    <h3>Ticket Input Data - Valid vs Invalid</h3>
+                    <p class="lead">Copy & paste data ini untuk testing manual di form create ticket</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST 1: VALID DATA -->
+        <div class="test-card valid">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    ✅ TEST 1: DATA VALID (Lengkap & Format Benar)
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success">
+                    <strong>Expected Result:</strong> Ticket berhasil dibuat, status = pending_review, validasi PASSED
+                </div>
+                
+                <h5>📋 Data Pelapor:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>NIP</th><td>198501012020</td></tr>
+                    <tr><th>Nama</th><td>Budi Santoso</td></tr>
+                    <tr><th>Email</th><td>budi.santoso@company.com</td></tr>
+                    <tr><th>Telepon</th><td>081234567890</td></tr>
+                    <tr><th>Departemen</th><td>IT Support</td></tr>
+                </table>
+
+                <h5>🎫 Data Ticket:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Subject</th><td>Laptop tidak bisa connect ke WiFi</td></tr>
+                    <tr><th>Description</th><td>Laptop saya tiba-tiba tidak bisa connect ke WiFi kantor. Sudah coba restart laptop dan router tetapi tetap tidak bisa. Password sudah benar. Error message: "Can't connect to this network"</td></tr>
+                    <tr><th>Category</th><td>Technical</td></tr>
+                    <tr><th>Priority</th><td>high</td></tr>
+                    <tr><th>Channel</th><td>portal</td></tr>
+                    <tr><th>Input Method</th><td>manual</td></tr>
+                </table>
+
+                <h5>💻 JSON Format:</h5>
+                <div class="code-wrapper">
+                    <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('valid-json')">
+                        📋 Copy
+                    </button>
+                    <pre id="valid-json">{
+    "reporter_nip": "198501012020",
+    "reporter_name": "Budi Santoso",
+    "reporter_email": "budi.santoso@company.com",
+    "reporter_phone": "081234567890",
+    "reporter_department": "IT Support",
+    "subject": "Laptop tidak bisa connect ke WiFi",
+    "description": "Laptop saya tiba-tiba tidak bisa connect ke WiFi kantor. Sudah coba restart laptop dan router tetapi tetap tidak bisa. Password sudah benar. Error message: 'Can't connect to this network'",
+    "category": "Technical",
+    "priority": "high",
+    "channel": "portal",
+    "input_method": "manual"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST 2: INVALID - Email Format -->
+        <div class="test-card invalid">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    ❌ TEST 2: DATA INVALID - Email Format Salah
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Expected Result:</strong> Validasi FAILED - "Format email tidak valid"
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-danger badge-issue">🚫 Email: siti.nurhaliza@invalid</span>
+                    <span class="badge bg-info">Missing domain extension (.com, .co.id, etc)</span>
+                </div>
+
+                <h5>📋 Data Pelapor:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>NIP</th><td>198501012021</td></tr>
+                    <tr><th>Nama</th><td>Siti Nurhaliza</td></tr>
+                    <tr><th>Email</th><td><span class="text-danger fw-bold">siti.nurhaliza@invalid</span> ❌</td></tr>
+                    <tr><th>Telepon</th><td>081234567891</td></tr>
+                    <tr><th>Departemen</th><td>Finance</td></tr>
+                </table>
+
+                <h5>🎫 Data Ticket:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Subject</th><td>Request akses sistem</td></tr>
+                    <tr><th>Description</th><td>Mohon bantuan untuk akses ke sistem SAP karena saya tidak bisa login</td></tr>
+                    <tr><th>Category</th><td>Access Request</td></tr>
+                    <tr><th>Priority</th><td>medium</td></tr>
+                    <tr><th>Channel</th><td>email</td></tr>
+                    <tr><th>Input Method</th><td>email</td></tr>
+                </table>
+
+                <h5>💻 JSON Format:</h5>
+                <div class="code-wrapper">
+                    <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('invalid-email-json')">
+                        📋 Copy
+                    </button>
+                    <pre id="invalid-email-json">{
+    "reporter_nip": "198501012021",
+    "reporter_name": "Siti Nurhaliza",
+    "reporter_email": "siti.nurhaliza@invalid",
+    "reporter_phone": "081234567891",
+    "reporter_department": "Finance",
+    "subject": "Request akses sistem",
+    "description": "Mohon bantuan untuk akses ke sistem SAP karena saya tidak bisa login",
+    "category": "Access Request",
+    "priority": "medium",
+    "channel": "email",
+    "input_method": "email"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST 3: INVALID - Data Tidak Lengkap -->
+        <div class="test-card invalid">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    ❌ TEST 3: DATA INVALID - Data Tidak Lengkap
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Expected Result:</strong> Validasi FAILED - "Data tidak lengkap"
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-danger badge-issue">🚫 Nama: Kosong</span>
+                    <span class="badge bg-danger badge-issue">🚫 Subject: "Test" (< 5 karakter)</span>
+                    <span class="badge bg-danger badge-issue">🚫 Description: "Short" (< 10 karakter)</span>
+                </div>
+
+                <h5>📋 Data Pelapor:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>NIP</th><td>198501012022</td></tr>
+                    <tr><th>Nama</th><td><span class="text-danger fw-bold">(kosong)</span> ❌</td></tr>
+                    <tr><th>Email</th><td>john.doe@company.com</td></tr>
+                    <tr><th>Telepon</th><td>081234567892</td></tr>
+                    <tr><th>Departemen</th><td>HR</td></tr>
+                </table>
+
+                <h5>🎫 Data Ticket:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Subject</th><td><span class="text-danger fw-bold">Test</span> ❌ (min 5 karakter)</td></tr>
+                    <tr><th>Description</th><td><span class="text-danger fw-bold">Short</span> ❌ (min 10 karakter)</td></tr>
+                    <tr><th>Category</th><td>General</td></tr>
+                    <tr><th>Priority</th><td>low</td></tr>
+                    <tr><th>Channel</th><td>portal</td></tr>
+                    <tr><th>Input Method</th><td>manual</td></tr>
+                </table>
+
+                <h5>💻 JSON Format:</h5>
+                <div class="code-wrapper">
+                    <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('invalid-incomplete-json')">
+                        📋 Copy
+                    </button>
+                    <pre id="invalid-incomplete-json">{
+    "reporter_nip": "198501012022",
+    "reporter_name": "",
+    "reporter_email": "john.doe@company.com",
+    "reporter_phone": "081234567892",
+    "reporter_department": "HR",
+    "subject": "Test",
+    "description": "Short",
+    "category": "General",
+    "priority": "low",
+    "channel": "portal",
+    "input_method": "manual"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST 4: INVALID - Phone Format -->
+        <div class="test-card invalid">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    ❌ TEST 4: DATA INVALID - Nomor Telepon Terlalu Pendek
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Expected Result:</strong> Validasi FAILED atau Error saat create
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-danger badge-issue">🚫 Phone: 0812345 (< 10 digit)</span>
+                </div>
+
+                <h5>📋 Data Pelapor:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>NIP</th><td>198501012023</td></tr>
+                    <tr><th>Nama</th><td>Ahmad Yani</td></tr>
+                    <tr><th>Email</th><td>ahmad.yani@company.com</td></tr>
+                    <tr><th>Telepon</th><td><span class="text-danger fw-bold">0812345</span> ❌ (min 10 digit)</td></tr>
+                    <tr><th>Departemen</th><td>Operations</td></tr>
+                </table>
+
+                <h5>🎫 Data Ticket:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Subject</th><td>Printer tidak berfungsi dengan baik</td></tr>
+                    <tr><th>Description</th><td>Printer di lantai 3 tidak bisa print berwarna, hanya bisa print hitam putih saja.</td></tr>
+                    <tr><th>Category</th><td>Hardware</td></tr>
+                    <tr><th>Priority</th><td>medium</td></tr>
+                    <tr><th>Channel</th><td>call</td></tr>
+                    <tr><th>Input Method</th><td>manual</td></tr>
+                </table>
+
+                <h5>💻 JSON Format:</h5>
+                <div class="code-wrapper">
+                    <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('invalid-phone-json')">
+                        📋 Copy
+                    </button>
+                    <pre id="invalid-phone-json">{
+    "reporter_nip": "198501012023",
+    "reporter_name": "Ahmad Yani",
+    "reporter_email": "ahmad.yani@company.com",
+    "reporter_phone": "0812345",
+    "reporter_department": "Operations",
+    "subject": "Printer tidak berfungsi dengan baik",
+    "description": "Printer di lantai 3 tidak bisa print berwarna, hanya bisa print hitam putih saja.",
+    "category": "Hardware",
+    "priority": "medium",
+    "channel": "call",
+    "input_method": "manual"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEST 5: INVALID - Spam Pattern -->
+        <div class="test-card invalid">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    ❌ TEST 5: DATA INVALID - Spam Pattern Detection
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger">
+                    <strong>Expected Result:</strong> Validasi FAILED - "Spam pattern detected"
+                </div>
+                
+                <div class="mb-3">
+                    <span class="badge bg-danger badge-issue">🚫 Subject: "test test test"</span>
+                    <span class="badge bg-danger badge-issue">🚫 Description: "testing aaaa xxxx"</span>
+                    <span class="badge bg-info">Contains spam keywords: test, aaaa, xxxx</span>
+                </div>
+
+                <h5>📋 Data Pelapor:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>NIP</th><td>198501012024</td></tr>
+                    <tr><th>Nama</th><td>Test User</td></tr>
+                    <tr><th>Email</th><td>test@test.com</td></tr>
+                    <tr><th>Telepon</th><td>081234567894</td></tr>
+                    <tr><th>Departemen</th><td>Testing</td></tr>
+                </table>
+
+                <h5>🎫 Data Ticket:</h5>
+                <table class="table table-sm table-bordered">
+                    <tr><th>Subject</th><td><span class="text-danger fw-bold">test test test</span> ❌</td></tr>
+                    <tr><th>Description</th><td><span class="text-danger fw-bold">testing aaaa xxxx testing testing</span> ❌</td></tr>
+                    <tr><th>Category</th><td>General</td></tr>
+                    <tr><th>Priority</th><td>low</td></tr>
+                    <tr><th>Channel</th><td>portal</td></tr>
+                    <tr><th>Input Method</th><td>manual</td></tr>
+                </table>
+
+                <h5>💻 JSON Format:</h5>
+                <div class="code-wrapper">
+                    <button class="btn btn-sm btn-primary copy-btn" onclick="copyToClipboard('invalid-spam-json')">
+                        📋 Copy
+                    </button>
+                    <pre id="invalid-spam-json">{
+    "reporter_nip": "198501012024",
+    "reporter_name": "Test User",
+    "reporter_email": "test@test.com",
+    "reporter_phone": "081234567894",
+    "reporter_department": "Testing",
+    "subject": "test test test",
+    "description": "testing aaaa xxxx testing testing",
+    "category": "General",
+    "priority": "low",
+    "channel": "portal",
+    "input_method": "manual"
+}</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Instructions -->
+        <div class="test-card" style="border-left: 5px solid #007bff;">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">📖 Panduan Testing</h4>
+            </div>
+            <div class="card-body">
+                <h5>🎯 Cara Testing Manual:</h5>
+                <ol>
+                    <li><strong>Via Form Web:</strong>
+                        <ul>
+                            <li>Buka: <a href="http://localhost:8000/tickets/create" target="_blank">http://localhost:8000/tickets/create</a></li>
+                            <li>Login sebagai admin jika diperlukan</li>
+                            <li>Copy data dari test case di atas</li>
+                            <li>Paste ke form yang sesuai</li>
+                            <li>Submit dan cek hasilnya</li>
+                        </ul>
+                    </li>
+                    <li><strong>Via Script PHP:</strong>
+                        <ul>
+                            <li>Run: <code>php test-ticket-data.php</code></li>
+                            <li>Lihat output di terminal</li>
+                        </ul>
+                    </li>
+                    <li><strong>Via Postman/API:</strong>
+                        <ul>
+                            <li>POST ke: <code>http://localhost:8000/api/v1/tickets</code></li>
+                            <li>Copy JSON format dan paste ke request body</li>
+                            <li>Set header: <code>Content-Type: application/json</code></li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h5>✅ Yang Harus Dicek:</h5>
+                <ul>
+                    <li>📝 <strong>TEST 1 (Valid):</strong> Harus berhasil create ticket, status = pending_review</li>
+                    <li>❌ <strong>TEST 2 (Email):</strong> Harus ditolak/gagal validasi email</li>
+                    <li>❌ <strong>TEST 3 (Incomplete):</strong> Harus ditolak karena data tidak lengkap</li>
+                    <li>❌ <strong>TEST 4 (Phone):</strong> Harus ditolak karena nomor terlalu pendek</li>
+                    <li>❌ <strong>TEST 5 (Spam):</strong> Harus terdeteksi sebagai spam</li>
+                </ul>
+
+                <h5>🔍 Cek di Database:</h5>
+                <pre>mysql -u root -p
+USE helpdesk_itso;
+SELECT ticket_number, reporter_name, subject, status FROM tickets ORDER BY id DESC LIMIT 5;</pre>
+
+                <h5>🔍 Cek di Admin Dashboard:</h5>
+                <ul>
+                    <li>Login sebagai admin: <a href="http://localhost:8000/admin/dashboard" target="_blank">Dashboard Admin</a></li>
+                    <li>Cek menu "Pending Review"</li>
+                    <li>Verifikasi data pelapor tampil dengan benar</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success message
+                const btn = element.previousElementSibling;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-primary');
+                }, 2000);
+            }).catch(err => {
+                alert('Failed to copy: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>

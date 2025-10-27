@@ -5,23 +5,67 @@
     <h2 class="mb-4">Pending Review Tickets</h2>
 
     @foreach($tickets as $ticket)
-    <div class="card mb-3">
+    <div class="card mb-3 shadow-sm">
         <div class="card-body">
             <div class="row">
                 <div class="col-md-8">
-                    <h5>{{ $ticket->subject }}</h5>
-                    <p class="text-muted">{{ Str::limit($ticket->description, 200) }}</p>
-                    <div class="d-flex gap-2">
-                        <span class="badge bg-secondary">{{ $ticket->ticket_number }}</span>
-                        <span class="badge bg-warning">{{ $ticket->priority }}</span>
-                        <span class="badge bg-info">{{ $ticket->category }}</span>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="mb-0">{{ $ticket->subject }}</h5>
+                        <span class="badge bg-{{ $ticket->priority === 'high' ? 'danger' : ($ticket->priority === 'medium' ? 'warning' : 'secondary') }}">
+                            {{ strtoupper($ticket->priority) }}
+                        </span>
                     </div>
-                    <p class="mt-2 mb-0">
-                        <strong>User:</strong> {{ $ticket->user_name }} ({{ $ticket->user_email }})
+                    
+                    <p class="text-muted mb-2">{{ Str::limit($ticket->description, 200) }}</p>
+                    
+                    <!-- Badges Section -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <span class="badge bg-secondary">
+                            <i class="fas fa-ticket-alt"></i> {{ $ticket->ticket_number }}
+                        </span>
+                        <span class="badge bg-info">
+                            <i class="fas fa-folder"></i> {{ $ticket->category }}
+                        </span>
+                        <span class="badge bg-dark">
+                            <i class="fas fa-{{ $ticket->channel === 'email' ? 'envelope' : ($ticket->channel === 'whatsapp' ? 'whatsapp' : 'desktop') }}"></i> 
+                            {{ ucfirst($ticket->channel) }}
+                        </span>
+                    </div>
+
+                    <!-- Reporter Info (Minimal) -->
+                    <div class="alert alert-light border mb-2 py-2">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Pelapor:</small>
+                                <strong>{{ $ticket->reporter_name ?? $ticket->user_name }}</strong>
+                                @if($ticket->reporter_nip)
+                                    <span class="badge bg-secondary ms-1">{{ $ticket->reporter_nip }}</span>
+                                @endif
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted d-block">Waktu Tunggu:</small>
+                                <strong class="text-warning">
+                                    <i class="fas fa-clock"></i> {{ $ticket->created_at->diffForHumans() }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="mb-0 text-muted small">
+                        <i class="fas fa-user"></i> <strong>User:</strong> {{ $ticket->user_name }} ({{ $ticket->user_email }})
                     </p>
                 </div>
+                
                 <div class="col-md-4">
-                    <div class="btn-group-vertical w-100">
+                    <!-- View Details - Made Prominent -->
+                    <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                        <i class="fas fa-eye"></i> Lihat Detail Lengkap
+                    </a>
+                    
+                    <hr>
+                    
+                    <!-- Action Buttons -->
+                    <div class="btn-group-vertical w-100 gap-1">
                         <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#approveModal{{ $ticket->id }}">
                             <i class="fas fa-check"></i> Approve
                         </button>
@@ -31,9 +75,6 @@
                         <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $ticket->id }}">
                             <i class="fas fa-times"></i> Reject
                         </button>
-                        <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-primary">
-                            <i class="fas fa-eye"></i> View Details
-                        </a>
                     </div>
                 </div>
             </div>
