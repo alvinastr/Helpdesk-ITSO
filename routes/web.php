@@ -29,6 +29,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/dashboard', [AdminTicketController::class, 'dashboard'])->name('admin.dashboard');
     Route::get('/pending-review', [AdminTicketController::class, 'pendingTickets'])->name('admin.pending-review');
     
+    // Admin Ticket Creation
+    Route::get('/tickets/create', [AdminController::class, 'createTicket'])->name('admin.tickets.create');
+    Route::post('/tickets', [AdminController::class, 'storeTicket'])->name('admin.tickets.store');
+    Route::get('/tickets/{ticket}', [AdminController::class, 'showTicket'])->name('admin.tickets.show');
+    
     // Ticket management
     Route::post('/tickets/{ticket}/approve', [AdminTicketController::class, 'approve'])->name('admin.tickets.approve');
     Route::post('/tickets/{ticket}/reject', [AdminTicketController::class, 'reject'])->name('admin.tickets.reject');
@@ -42,6 +47,16 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('admin.reports');
     Route::get('/reports/export-excel', [ReportController::class, 'exportExcel'])->name('admin.reports.excel');
     Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('admin.reports.pdf');
+    
+    // KPI Dashboard
+    Route::get('/kpi', [App\Http\Controllers\KpiDashboardController::class, 'index'])->name('kpi.dashboard');
+    Route::get('/kpi/export', [App\Http\Controllers\KpiDashboardController::class, 'export'])->name('kpi.export');
+});
+
+// KPI API routes (for AJAX calls)
+Route::prefix('api')->middleware(['auth', 'admin'])->group(function () {
+    Route::get('/kpi/summary', [App\Http\Controllers\KpiDashboardController::class, 'apiSummary'])->name('api.kpi.summary');
+    Route::get('/kpi/trends', [App\Http\Controllers\KpiDashboardController::class, 'apiTrends'])->name('api.kpi.trends');
 });
 
 Auth::routes();

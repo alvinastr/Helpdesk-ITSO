@@ -14,7 +14,7 @@ class AdminTicketRequest extends FormRequest
 
     public function rules()
     {
-        return [
+        $rules = [
             // Data Reporter (Pelapor) - sama dengan user
             'reporter_nip' => 'required|string|max:50',
             'reporter_name' => 'required|string|max:255',
@@ -35,9 +35,19 @@ class AdminTicketRequest extends FormRequest
             'original_message' => 'nullable|string',
             'channel' => 'required|in:email,whatsapp,call,portal',
             
+            // KPI Field - Email Received Time
+            'email_received_at' => 'nullable|date|before_or_equal:now',
+            
             // Attachments
             'attachments.*' => 'nullable|file|max:5120' // 5MB
         ];
+
+        // Make email_received_at required if channel is email
+        if (request()->input('channel') === 'email') {
+            $rules['email_received_at'] = 'required|date|before_or_equal:now';
+        }
+
+        return $rules;
     }
 
     public function messages()
@@ -66,6 +76,11 @@ class AdminTicketRequest extends FormRequest
             'input_method.in' => 'Metode input tidak valid',
             'channel.required' => 'Channel wajib dipilih',
             'channel.in' => 'Channel tidak valid',
+            
+            // KPI validation messages
+            'email_received_at.required' => 'Waktu email diterima wajib diisi untuk channel email',
+            'email_received_at.date' => 'Format waktu email tidak valid',
+            'email_received_at.before_or_equal' => 'Waktu email tidak boleh di masa depan',
             
             // File validation
             'attachments.*.max' => 'File maksimal 5MB'

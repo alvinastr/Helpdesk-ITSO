@@ -97,6 +97,169 @@
                 </div>
             </div>
 
+            <!-- KPI Metrics Card (Only show if email_received_at exists) -->
+            @if($ticket->email_received_at)
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line me-2"></i>KPI Metrics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Email Received -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                                        <i class="fas fa-envelope fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <small class="text-muted d-block">Email Diterima</small>
+                                    <h6 class="mb-0">{{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->email_received_at, 'd M Y, H:i') }}</h6>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Response Time -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-success bg-opacity-10 text-success rounded p-3">
+                                        <i class="fas fa-reply fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <small class="text-muted d-block">Response Time</small>
+                                    @if($ticket->first_response_at)
+                                        <h6 class="mb-1">
+                                            <span class="badge {{ $ticket->isResponseTimeWithinTarget() ? 'bg-success' : 'bg-danger' }}">
+                                                {{ $ticket->getResponseTimeFormatted() }}
+                                            </span>
+                                        </h6>
+                                        <small class="{{ $ticket->isResponseTimeWithinTarget() ? 'text-success' : 'text-danger' }}">
+                                            <i class="fas {{ $ticket->isResponseTimeWithinTarget() ? 'fa-check-circle' : 'fa-exclamation-circle' }}"></i>
+                                            {{ $ticket->isResponseTimeWithinTarget() ? 'Memenuhi SLA' : 'Melebihi SLA' }}
+                                        </small>
+                                    @else
+                                        <h6 class="mb-0 text-muted">Belum ada respon</h6>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resolution Time -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded p-3">
+                                        <i class="fas fa-check-double fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <small class="text-muted d-block">Resolution Time</small>
+                                    @if($ticket->resolved_at)
+                                        <h6 class="mb-1">
+                                            <span class="badge {{ $ticket->isResolutionTimeWithinTarget() ? 'bg-success' : 'bg-danger' }}">
+                                                {{ $ticket->getResolutionTimeFormatted() }}
+                                            </span>
+                                        </h6>
+                                        <small class="{{ $ticket->isResolutionTimeWithinTarget() ? 'text-success' : 'text-danger' }}">
+                                            <i class="fas {{ $ticket->isResolutionTimeWithinTarget() ? 'fa-check-circle' : 'fa-exclamation-circle' }}"></i>
+                                            {{ $ticket->isResolutionTimeWithinTarget() ? 'Memenuhi SLA' : 'Melebihi SLA' }}
+                                        </small>
+                                    @else
+                                        <h6 class="mb-0 text-muted">Belum diresolve</h6>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ticket Creation Delay -->
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <div class="bg-warning bg-opacity-10 text-warning rounded p-3">
+                                        <i class="fas fa-hourglass-half fa-2x"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <small class="text-muted d-block">Delay Pembuatan Ticket</small>
+                                    @if($ticket->ticket_creation_delay_minutes)
+                                        <h6 class="mb-0">
+                                            <span class="badge {{ $ticket->ticket_creation_delay_minutes <= 60 ? 'bg-success' : 'bg-warning' }}">
+                                                {{ $ticket->getTicketCreationDelayFormatted() }}
+                                            </span>
+                                        </h6>
+                                    @else
+                                        <h6 class="mb-0 text-muted">-</h6>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Visualization -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="text-muted mb-3"><i class="fas fa-clock me-2"></i>Timeline</h6>
+                        <div class="kpi-timeline">
+                            <!-- Email Received -->
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-primary"></div>
+                                <div class="timeline-content">
+                                    <strong class="d-block">Email Diterima</strong>
+                                    <small class="text-muted">{{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->email_received_at, 'd M Y, H:i') }}</small>
+                                </div>
+                            </div>
+
+                            <!-- First Response -->
+                            @if($ticket->first_response_at)
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <strong class="d-block">Respon Pertama</strong>
+                                    <small class="text-muted">
+                                        {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->first_response_at, 'd M Y, H:i') }}
+                                        <span class="badge bg-info ms-2">+{{ $ticket->getResponseTimeFormatted() }}</span>
+                                    </small>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Resolved -->
+                            @if($ticket->resolved_at)
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-info"></div>
+                                <div class="timeline-content">
+                                    <strong class="d-block">Diresolve</strong>
+                                    <small class="text-muted">
+                                        {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->resolved_at, 'd M Y, H:i') }}
+                                        <span class="badge bg-info ms-2">+{{ $ticket->getResolutionTimeFormatted() }}</span>
+                                    </small>
+                                </div>
+                            </div>
+                            @endif
+
+                            <!-- Ticket Created -->
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-secondary"></div>
+                                <div class="timeline-content">
+                                    <strong class="d-block">Ticket Dibuat di Sistem</strong>
+                                    <small class="text-muted">
+                                        {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->created_at, 'd M Y, H:i') }}
+                                        @if($ticket->ticket_creation_delay_minutes)
+                                            <span class="badge bg-warning text-dark ms-2">Delay: {{ $ticket->getTicketCreationDelayFormatted() }}</span>
+                                        @endif
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Thread Conversation -->
             <div class="card mb-3">
                 <div class="card-header">
@@ -369,4 +532,73 @@
         </div>
     </div>
 </div>
+
+@push('styles')
+<style>
+.kpi-timeline {
+    position: relative;
+    padding-left: 30px;
+    margin-top: 1rem;
+}
+
+.kpi-timeline::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+}
+
+.timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -26px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-content {
+    padding-left: 10px;
+}
+
+.timeline-content strong {
+    color: #495057;
+    font-weight: 600;
+}
+
+.timeline-content small {
+    font-size: 0.875rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .kpi-timeline::before {
+        background: #495057;
+    }
+    
+    .timeline-marker {
+        border-color: #212529;
+        box-shadow: 0 0 0 2px #495057;
+    }
+    
+    .timeline-content strong {
+        color: #f8f9fa;
+    }
+}
+</style>
+@endpush
 @endsection

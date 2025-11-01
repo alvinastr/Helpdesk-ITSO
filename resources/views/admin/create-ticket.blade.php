@@ -193,8 +193,25 @@
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
-                            <div class="col-md-6">
-                                <!-- Placeholder untuk keseimbangan layout -->
+                            <div class="col-md-6" id="email-received-time-wrapper" style="display: none;">
+                                <label for="email_received_at" class="form-label fw-semibold mb-2">
+                                    Waktu Email Diterima <span class="text-danger">*</span>
+                                    <i class="fas fa-info-circle text-info ms-1" 
+                                       data-bs-toggle="tooltip" 
+                                       title="Isi dengan tanggal dan waktu email keluhan pertama kali diterima. Data ini penting untuk KPI tracking (Response Time & Resolution Time)."></i>
+                                </label>
+                                <input type="datetime-local" 
+                                       class="form-control form-control-lg @error('email_received_at') is-invalid @enderror" 
+                                       id="email_received_at" 
+                                       name="email_received_at" 
+                                       value="{{ old('email_received_at') }}">
+                                <small class="form-text text-muted d-block mt-2">
+                                    <i class="fas fa-chart-line text-primary me-1"></i>
+                                    Penting untuk perhitungan KPI: Response Time & Resolution Time
+                                </small>
+                                @error('email_received_at')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
                             </div>
                         </div>
 
@@ -286,6 +303,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const originalMessageRow = document.getElementById('original_message_row');
     const emailInput = document.getElementById('reporter_email');
     const phoneInput = document.getElementById('reporter_phone');
+    const emailTimeWrapper = document.getElementById('email-received-time-wrapper');
+    const emailTimeInput = document.getElementById('email_received_at');
 
     // Show/hide original message based on input method
     function toggleOriginalMessage() {
@@ -293,6 +312,18 @@ document.addEventListener('DOMContentLoaded', function() {
             originalMessageRow.style.display = 'block';
         } else {
             originalMessageRow.style.display = 'none';
+        }
+    }
+
+    // Show/hide email received time based on channel
+    function toggleEmailTimeField() {
+        if (channelSelect.value === 'email') {
+            emailTimeWrapper.style.display = 'block';
+            emailTimeInput.required = true;
+        } else {
+            emailTimeWrapper.style.display = 'none';
+            emailTimeInput.required = false;
+            emailTimeInput.value = '';
         }
     }
 
@@ -305,6 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (inputMethodSelect.value === 'manual') {
             channelSelect.value = 'portal';
         }
+        toggleEmailTimeField();
     }
 
     // Contact validation helper
@@ -327,11 +359,20 @@ document.addEventListener('DOMContentLoaded', function() {
         syncChannel();
     });
 
+    channelSelect.addEventListener('change', toggleEmailTimeField);
+
     emailInput.addEventListener('input', validateContact);
     phoneInput.addEventListener('input', validateContact);
 
     // Initialize
     toggleOriginalMessage();
+    toggleEmailTimeField();
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
 });
 </script>
 @endsection

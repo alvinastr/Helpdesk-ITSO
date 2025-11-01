@@ -13,13 +13,16 @@ class TicketService
 {
     protected $validationService;
     protected $notificationService;
+    protected $kpiService;
 
     public function __construct(
         ValidationService $validationService,
-        NotificationService $notificationService
+        NotificationService $notificationService,
+        KpiCalculationService $kpiService
     ) {
         $this->validationService = $validationService;
         $this->notificationService = $notificationService;
+        $this->kpiService = $kpiService;
     }
 
     /**
@@ -170,8 +173,16 @@ class TicketService
                 'priority' => $data['priority'] ?? 'medium',
                 'assigned_to' => null, // Tidak digunakan lagi
                 'created_by_admin' => $data['created_by_admin'],
-                'status' => 'pending_review' // Skip validation for admin-created tickets
+                'status' => 'pending_review', // Skip validation for admin-created tickets
+                
+                // KPI: Set email_received_at jika ada
+                'email_received_at' => $data['email_received_at'] ?? null,
             ]);
+            
+            // Calculate ticket creation delay if email_received_at is set
+            if ($ticket->email_received_at) {
+                $this->kpiService->updateTicketKpiMetrics($ticket);
+            }
 
             // Step 4: Create initial thread
             $this->addThreadMessage($ticket, [
@@ -239,7 +250,7 @@ class TicketService
      */
     public function addThreadMessage(Ticket $ticket, array $data): TicketThread
     {
-        return TicketThread::create([
+        $thread = TicketThread::create([
             'ticket_id' => $ticket->id,
             'sender_type' => $data['sender_type'] ?? 'user',
             'sender_id' => $data['sender_id'] ?? Auth::id(),
@@ -248,6 +259,13 @@ class TicketService
             'message' => $data['message'],
             'attachments' => $data['attachments'] ?? null
         ]);
+        
+        // KPI: Track first response from admin/staff
+        if ($data['sender_type'] === 'admin' && !$ticket->first_response_at) {
+            $this->kpiService->setFirstResponseTime($ticket);
+        }
+        
+        return $thread;
     }
 
     /**
@@ -265,8 +283,18 @@ class TicketService
             $updateData['closed_at'] = now();
             $updateData['closed_by'] = Auth::id();
         }
+        
+        // KPI: Set resolved_at when status changes to resolved
+        if ($newStatus === 'resolved' && !$ticket->resolved_at) {
+            $updateData['resolved_at'] = now();
+        }
 
         $ticket->update($updateData);
+        
+        // KPI: Update metrics when status changes
+        if ($newStatus === 'resolved' || $newStatus === 'closed') {
+            $this->kpiService->updateTicketKpiMetrics($ticket);
+        }
 
         // Record status history
         TicketStatusHistory::create([
