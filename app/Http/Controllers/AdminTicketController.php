@@ -36,10 +36,9 @@ class AdminTicketController extends Controller
     /**
      * Approve a ticket
      */
-    public function approve(Request $request, $ticketId)
+    public function approve(Request $request, Ticket $ticket)
     {
         try {
-            $ticket = Ticket::findOrFail($ticketId);
             Log::info('Approve method called for ticket: ' . $ticket->id . ' status: ' . $ticket->status);
             
             $result = $this->ticketService->approveTicket($ticket, Auth::user());
@@ -55,20 +54,21 @@ class AdminTicketController extends Controller
     /**
      * Reject a pending ticket
      */
-    public function reject(Request $request, $ticketId)
+    public function reject(Request $request, Ticket $ticket)
     {
-        Log::info("Reject method called for ticket: $ticketId");
-        
-        $ticket = Ticket::findOrFail($ticketId);
+        Log::info("Reject method called for ticket: {$ticket->id}");
         Log::info("Reject ticket found", ['ticket' => $ticket->toArray()]);
         
+        // Reason is now optional - will be auto-filled if empty
         $request->validate([
-            'reason' => 'required|string|min:10|max:500'
+            'reason' => 'nullable|string|max:500'
         ]);
 
         try {
             Log::info("About to call rejectTicket service method");
-            $result = $this->ticketService->rejectTicket($ticket, $request->reason, Auth::user());
+            // Use default reason if empty
+            $reason = $request->reason ?: 'Ticket ditolak oleh admin';
+            $result = $this->ticketService->rejectTicket($ticket, $reason, Auth::user());
             Log::info("RejectTicket completed", ['result_status' => $result->status]);
             
             return redirect()->back()->with('success', 'Ticket berhasil ditolak');
@@ -82,10 +82,8 @@ class AdminTicketController extends Controller
     /**
      * Request revision for a ticket
      */
-    public function requestRevision(Request $request, $ticketId)
+    public function requestRevision(Request $request, Ticket $ticket)
     {
-        $ticket = Ticket::findOrFail($ticketId);
-        
         $request->validate([
             'message' => 'required|string|min:10|max:1000'
         ]);
@@ -124,16 +122,17 @@ class AdminTicketController extends Controller
     /**
      * Close a ticket with resolution
      */
-    public function close(Request $request, $ticketId)
+    public function close(Request $request, Ticket $ticket)
     {
-        $ticket = Ticket::findOrFail($ticketId);
-        
+        // Resolution notes is now optional - will be auto-filled if empty
         $request->validate([
-            'resolution_notes' => 'required|string|min:10|max:1000'
+            'resolution_notes' => 'nullable|string|max:1000'
         ]);
 
         try {
-            $this->ticketService->closeTicket($ticket, $request->resolution_notes, Auth::user());
+            // Use default resolution notes if empty
+            $resolutionNotes = $request->resolution_notes ?: 'Masalah telah diselesaikan';
+            $this->ticketService->closeTicket($ticket, $resolutionNotes, Auth::user());
             
             return redirect()->back()->with('success', 'Ticket berhasil ditutup');
         } catch (\Exception $e) {

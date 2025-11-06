@@ -44,6 +44,15 @@ class Ticket extends Model
         'response_time_minutes',
         'resolution_time_minutes',
         'ticket_creation_delay_minutes',
+        // Email Content Fields
+        'email_subject',
+        'email_body_original',
+        'email_response_admin',
+        'email_resolution_message',
+        'email_thread',
+        'email_from',
+        'email_to',
+        'email_cc',
     ];
     
     protected $casts = [
@@ -52,6 +61,7 @@ class Ticket extends Model
         'email_received_at' => 'datetime',
         'first_response_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'email_thread' => 'array', // JSON cast
     ];
 
     // Relationships

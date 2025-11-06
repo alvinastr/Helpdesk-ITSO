@@ -370,16 +370,16 @@ class KpiCalculationService
         if (!$minutes) return '-';
         
         $hours = floor($minutes / 60);
-        $mins = round($minutes % 60);
+        $mins = (int) round($minutes % 60);
         $days = floor($hours / 24);
-        $hours = $hours % 24;
+        $hours = (int) ($hours % 24);
         
         if ($days > 0) {
-            return sprintf('%d hari %d jam %d menit', $days, $hours, $mins);
+            return sprintf('%d hari %d jam %d menit', (int) $days, $hours, $mins);
         } elseif ($hours > 0) {
             return sprintf('%d jam %d menit', $hours, $mins);
         } else {
-            return sprintf('%d menit', $mins);
+            return sprintf('%d menit', (int) $mins);
         }
     }
 }

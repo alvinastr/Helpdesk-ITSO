@@ -67,6 +67,36 @@
             color: var(--primary-color);
             background-color: rgba(13, 110, 253, 0.1);
             font-weight: 600;
+            position: relative;
+        }
+        
+        .navbar-light .navbar-nav .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: -0.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 3px;
+            background-color: var(--primary-color);
+            border-radius: 2px 2px 0 0;
+        }
+        
+        /* Skip to main content link for accessibility */
+        .skip-to-main {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            z-index: 100;
+            border-radius: 0 0 4px 0;
+        }
+        
+        .skip-to-main:focus {
+            top: 0;
         }
         
         .dropdown-menu {
@@ -102,9 +132,35 @@
             transform: translateX(5px);
         }
         
+        .dropdown-item.active {
+            background-color: rgba(13, 110, 253, 0.15);
+            color: var(--primary-color);
+            font-weight: 600;
+            position: relative;
+        }
+        
+        .dropdown-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: var(--primary-color);
+        }
+        
         .dropdown-item i {
             width: 20px;
             text-align: center;
+        }
+        
+        .dropdown-header {
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            color: #6c757d !important;
+            margin-top: 0.25rem;
         }
         
         .dropdown-divider {
@@ -308,21 +364,98 @@
             outline: 2px solid var(--primary-color);
             outline-offset: 2px;
         }
+        
+        /* Alert Styles - Ensure visibility */
+        .alert {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        .alert-heading {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            font-weight: 600 !important;
+            font-size: 1.1rem !important;
+            margin-bottom: 0.75rem !important;
+            color: inherit !important;
+        }
+        
+        .alert-info {
+            background-color: #cff4fc !important;
+            border-color: #9eeaf9 !important;
+            color: #055160 !important;
+        }
+        
+        .alert-info .alert-heading {
+            color: #055160 !important;
+        }
+        
+        .alert-warning {
+            background-color: #fff3cd !important;
+            border-color: #ffecb5 !important;
+            color: #664d03 !important;
+        }
+        
+        .alert-warning .alert-heading {
+            color: #664d03 !important;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da !important;
+            border-color: #f5c2c7 !important;
+            color: #842029 !important;
+        }
+        
+        .alert-danger .alert-heading {
+            color: #842029 !important;
+        }
+        
+        .alert-success {
+            background-color: #d1e7dd !important;
+            border-color: #badbcc !important;
+            color: #0f5132 !important;
+        }
+        
+        .alert-success .alert-heading {
+            color: #0f5132 !important;
+        }
+        
+        /* Alert Persistent - Never hide */
+        .alert-persistent {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        .alert ul {
+            padding-left: 1.5rem;
+            margin-bottom: 0;
+        }
+        
+        .alert ul li {
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
     </style>
 
     @stack('styles')
 </head>
 <body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-to-main">Skip to main content</a>
+    
     <div id="app">
         <!-- Navigation -->
-        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm" role="navigation" aria-label="Main navigation">
             <div class="container">
                 <a class="navbar-brand" href="{{ url('/') }}">
                     <i class="fas fa-headset me-2"></i>
                     {{ config('app.name', 'ITSO') }}
                 </a>
                 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
@@ -331,38 +464,64 @@
                     <ul class="navbar-nav me-auto">
                         @auth
                             <li class="nav-item">
-                                <a class="nav-link {{ Request::is('dashboard') ? 'active fw-bold' : '' }}" href="{{ route('dashboard') }}">
+                                <a class="nav-link {{ Request::is('dashboard') ? 'active' : '' }}" 
+                                   href="{{ route('dashboard') }}"
+                                   aria-current="{{ Request::is('dashboard') ? 'page' : 'false' }}">
                                     <i class="fas fa-tachometer-alt me-1"></i>Dashboard
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ Request::is('tickets') || Request::is('tickets/*') ? 'active fw-bold' : '' }}" href="{{ route('tickets.index') }}">
+                                <a class="nav-link {{ Request::is('tickets') || Request::is('tickets/*') ? 'active' : '' }}" 
+                                   href="{{ route('tickets.index') }}"
+                                   aria-current="{{ Request::is('tickets*') ? 'page' : 'false' }}">
                                     <i class="fas fa-ticket-alt me-1"></i>My Tickets
                                 </a>
                             </li>
                             @if(auth()->user()->role === 'admin')
-                                <li class="nav-item">
-                                    <a class="nav-link {{ Request::is('admin/kpi') || Request::is('admin/kpi/*') ? 'active fw-bold' : '' }}" href="{{ route('kpi.dashboard') }}">
-                                        <i class="fas fa-chart-line me-1"></i>KPI Dashboard
-                                    </a>
-                                </li>
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ Request::is('admin/*') && !Request::is('admin/kpi*') ? 'active fw-bold' : '' }}" href="#" role="button" data-bs-toggle="dropdown">
-                                        <i class="fas fa-cog me-1"></i>Admin
+                                    <a class="nav-link dropdown-toggle {{ Request::is('admin/*') ? 'active' : '' }}" 
+                                       href="#" 
+                                       id="adminDropdown"
+                                       role="button" 
+                                       data-bs-toggle="dropdown" 
+                                       aria-expanded="false"
+                                       aria-haspopup="true">
+                                        <i class="fas fa-tools me-1"></i>Admin
                                     </a>
-                                    <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">
-                                            <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
-                                        </a></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.pending-review') }}">
-                                            <i class="fas fa-clock me-2"></i>Pending Review
-                                        </a></li>
-                                        <li><a class="dropdown-item" href="{{ route('admin.reports') }}">
-                                            <i class="fas fa-file-alt me-2"></i>Reports
+                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown" style="min-width: 300px;">
+                                        <!-- Dashboard -->
+                                        <li><a class="dropdown-item {{ Request::is('admin/dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
+                                            <i class="fas fa-tachometer-alt me-2 text-primary"></i>Admin Dashboard
                                         </a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        <li><a class="dropdown-item" href="{{ route('kpi.dashboard') }}">
-                                            <i class="fas fa-chart-line me-2"></i>KPI Dashboard
+                                        
+                                        <!-- Ticket Management -->
+                                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-ticket-alt me-2"></i>Ticket Management
+                                        </h6></li>
+                                        <li><a class="dropdown-item {{ Request::is('admin/pending-review') ? 'active' : '' }}" href="{{ route('admin.pending-review') }}">
+                                            <i class="fas fa-clock me-2 text-warning"></i>Pending Review
+                                            @php
+                                                $pendingCount = \App\Models\Ticket::where('status', 'pending_review')->count();
+                                            @endphp
+                                            @if($pendingCount > 0)
+                                                <span class="badge bg-warning text-dark ms-2">{{ $pendingCount }}</span>
+                                            @endif
+                                        </a></li>
+                                        <li><a class="dropdown-item {{ Request::is('admin/tickets/create') ? 'active' : '' }}" href="{{ route('admin.tickets.create') }}">
+                                            <i class="fas fa-plus-circle me-2 text-success"></i>Create Ticket (Admin)
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        
+                                        <!-- Reports & Analytics -->
+                                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">
+                                            <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
+                                        </h6></li>
+                                        <li><a class="dropdown-item {{ Request::is('admin/kpi*') ? 'active' : '' }}" href="{{ route('kpi.dashboard') }}">
+                                            <i class="fas fa-chart-line me-2 text-info"></i>KPI Dashboard
+                                        </a></li>
+                                        <li><a class="dropdown-item {{ Request::is('admin/reports*') ? 'active' : '' }}" href="{{ route('admin.reports') }}">
+                                            <i class="fas fa-file-alt me-2 text-secondary"></i>Ticket Reports
                                         </a></li>
                                     </ul>
                                 </li>
@@ -389,11 +548,19 @@
                             @endif
                         @else
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" 
+                                   href="#" 
+                                   id="userDropdown"
+                                   role="button" 
+                                   data-bs-toggle="dropdown"
+                                   aria-expanded="false"
+                                   aria-haspopup="true">
                                     <div class="d-flex align-items-center">
                                         <div class="me-2">
                                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
-                                                 style="width: 32px; height: 32px; font-size: 0.875rem; font-weight: 600;">
+                                                 style="width: 32px; height: 32px; font-size: 0.875rem; font-weight: 600;"
+                                                 role="img"
+                                                 aria-label="User avatar">
                                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                                             </div>
                                         </div>
@@ -409,11 +576,13 @@
                                         </div>
                                     </div>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" style="min-width: 280px;">
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="min-width: 280px;">
                                     <li class="px-3 py-2 border-bottom">
                                         <div class="d-flex align-items-center mb-2">
                                             <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
-                                                 style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: 600;">
+                                                 style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: 600;"
+                                                 role="img"
+                                                 aria-label="User avatar">
                                                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                                             </div>
                                             <div class="flex-grow-1">
@@ -441,9 +610,18 @@
                                             <i class="fas fa-ticket-alt me-2"></i>My Tickets
                                         </a>
                                     </li>
+                                    @if(auth()->user()->role === 'admin')
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="{{ route('admin.dashboard') }}">
+                                                <i class="fas fa-shield-alt me-2 text-danger"></i>Admin Panel
+                                            </a>
+                                        </li>
+                                    @endif
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <a class="dropdown-item text-danger" href="{{ route('logout') }}"
+                                        <a class="dropdown-item text-danger" 
+                                           href="{{ route('logout') }}"
                                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
                                             <i class="fas fa-sign-out-alt me-2"></i>Logout
                                         </a>
@@ -460,7 +638,7 @@
         </nav>
 
         <!-- Main Content -->
-        <main class="py-4">
+        <main class="py-4" id="main-content" role="main">
             @if(session('success'))
                 <div class="container">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -483,7 +661,7 @@
         </main>
 
         <!-- Footer -->
-        <footer class="bg-white mt-5 py-4 border-top">
+        <footer class="bg-white mt-5 py-4 border-top" role="contentinfo">
             <div class="container text-center text-muted">
                 <p class="mb-0">&copy; {{ date('Y') }} {{ config('app.name') }}. All rights reserved.</p>
             </div>

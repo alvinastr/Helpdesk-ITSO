@@ -221,6 +221,9 @@ return [
         'subject' => 'subjek',
         'message' => 'pesan',
         'terms' => 'syarat dan ketentuan',
+        'email_received_at' => 'waktu email diterima',
+        'first_response_at' => 'waktu first response',
+        'resolved_at' => 'waktu resolved',
     ],
 
 ];

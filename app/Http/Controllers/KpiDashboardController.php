@@ -22,6 +22,11 @@ class KpiDashboardController extends Controller
      */
     public function index(Request $request)
     {
+        // Prevent browser caching - always get fresh data
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         // Get filter parameters
         $filters = $this->getFilters($request);
 
@@ -39,6 +44,7 @@ class KpiDashboardController extends Controller
         $byPriority = $this->kpiService->getKpiByPriority($filters);
 
         // Get tickets with SLA issues (slow response or resolution)
+        // ORDER BY updated_at DESC to show most recently updated tickets first
         $slowTickets = Ticket::with(['user', 'assignedUser'])
             ->where(function ($q) {
                 // Response time exceeded target (>30 minutes)
@@ -58,9 +64,12 @@ class KpiDashboardController extends Controller
             ->when($filters['date_to'] ?? null, function ($q, $date) {
                 return $q->where('created_at', '<=', $date);
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('updated_at', 'desc') // Changed from created_at to updated_at for latest changes
             ->limit(20)
             ->get();
+
+        // Add last updated timestamp
+        $lastUpdated = now()->format('d M Y H:i:s');
 
         return view('kpi.dashboard', compact(
             'summary',
@@ -69,7 +78,8 @@ class KpiDashboardController extends Controller
             'byPriority',
             'slowTickets',
             'filters',
-            'period'
+            'period',
+            'lastUpdated'
         ));
     }
 
@@ -192,12 +202,19 @@ class KpiDashboardController extends Controller
     {
         $filters = [];
 
+        // Set default date range to last 30 days if not specified
         if ($request->has('date_from')) {
             $filters['date_from'] = Carbon::parse($request->input('date_from'))->startOfDay();
+        } else {
+            // Default: 30 days ago
+            $filters['date_from'] = Carbon::now()->subDays(30)->startOfDay();
         }
 
         if ($request->has('date_to')) {
             $filters['date_to'] = Carbon::parse($request->input('date_to'))->endOfDay();
+        } else {
+            // Default: today
+            $filters['date_to'] = Carbon::now()->endOfDay();
         }
 
         if ($request->has('category')) {

@@ -6,9 +6,15 @@
         <div class="col-md-12">
             <div class="d-flex justify-content-between align-items-center">
                 <h2>{{ __('app.My Tickets') }}</h2>
-                <a href="{{ route('tickets.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> {{ __('app.Create Ticket') }}
-                </a>
+                @if(auth()->user()->role === 'admin')
+                    <a href="{{ route('admin.tickets.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> {{ __('app.Create Ticket') }} (Admin)
+                    </a>
+                @else
+                    <a href="{{ route('tickets.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> {{ __('app.Create Ticket') }}
+                    </a>
+                @endif
             </div>
         </div>
     </div>

@@ -51,6 +51,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     // KPI Dashboard
     Route::get('/kpi', [App\Http\Controllers\KpiDashboardController::class, 'index'])->name('kpi.dashboard');
     Route::get('/kpi/export', [App\Http\Controllers\KpiDashboardController::class, 'export'])->name('kpi.export');
+    
+    // Email Auto-Fetch Monitor
+    Route::get('/email-monitor', [App\Http\Controllers\Admin\EmailMonitorController::class, 'index'])->name('admin.email-monitor');
+    Route::post('/email-monitor/test-fetch', [App\Http\Controllers\Admin\EmailMonitorController::class, 'testFetch'])->name('admin.email-monitor.test-fetch');
+    Route::get('/email-monitor/live-stats', [App\Http\Controllers\Admin\EmailMonitorController::class, 'liveStats'])->name('admin.email-monitor.live-stats');
 });
 
 // KPI API routes (for AJAX calls)

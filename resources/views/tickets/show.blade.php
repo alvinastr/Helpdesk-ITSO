@@ -208,7 +208,7 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-primary"></div>
                                 <div class="timeline-content">
-                                    <strong class="d-block">Email Diterima</strong>
+                                    <strong class="d-block" style="color: #212529 !important;">Email Diterima</strong>
                                     <small class="text-muted">{{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->email_received_at, 'd M Y, H:i') }}</small>
                                 </div>
                             </div>
@@ -218,10 +218,10 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-success"></div>
                                 <div class="timeline-content">
-                                    <strong class="d-block">Respon Pertama</strong>
+                                    <strong class="d-block" style="color: #212529 !important;">Respon Pertama</strong>
                                     <small class="text-muted">
                                         {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->first_response_at, 'd M Y, H:i') }}
-                                        <span class="badge bg-info ms-2">+{{ $ticket->getResponseTimeFormatted() }}</span>
+                                        <span class="badge ms-2" style="background-color: #d1e7dd !important; color: #000000 !important; font-weight: 700 !important; font-size: 0.85rem !important; padding: 0.35em 0.65em !important; border: 1px solid #198754;">+{{ $ticket->getResponseTimeFormatted() }}</span>
                                     </small>
                                 </div>
                             </div>
@@ -232,10 +232,10 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-info"></div>
                                 <div class="timeline-content">
-                                    <strong class="d-block">Diresolve</strong>
+                                    <strong class="d-block" style="color: #212529 !important;">Diresolve</strong>
                                     <small class="text-muted">
                                         {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->resolved_at, 'd M Y, H:i') }}
-                                        <span class="badge bg-info ms-2">+{{ $ticket->getResolutionTimeFormatted() }}</span>
+                                        <span class="badge ms-2" style="background-color: #cfe2ff !important; color: #000000 !important; font-weight: 700 !important; font-size: 0.85rem !important; padding: 0.35em 0.65em !important; border: 1px solid #0d6efd;">+{{ $ticket->getResolutionTimeFormatted() }}</span>
                                     </small>
                                 </div>
                             </div>
@@ -245,17 +245,97 @@
                             <div class="timeline-item">
                                 <div class="timeline-marker bg-secondary"></div>
                                 <div class="timeline-content">
-                                    <strong class="d-block">Ticket Dibuat di Sistem</strong>
+                                    <strong class="d-block" style="color: #212529 !important;">Ticket Dibuat di Sistem</strong>
                                     <small class="text-muted">
                                         {{ \App\Helpers\DateHelper::formatDateIndonesian($ticket->created_at, 'd M Y, H:i') }}
                                         @if($ticket->ticket_creation_delay_minutes)
-                                            <span class="badge bg-warning text-dark ms-2">Delay: {{ $ticket->getTicketCreationDelayFormatted() }}</span>
+                                            <span class="badge ms-2" style="background-color: #fff3cd !important; color: #000000 !important; font-weight: 700 !important; font-size: 0.85rem !important; padding: 0.35em 0.65em !important; border: 1px solid #ffc107;">Delay: {{ $ticket->getTicketCreationDelayFormatted() }}</span>
                                         @endif
                                     </small>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+            @endif
+
+            {{-- Email Content Card (jika ada email thread) --}}
+            @if($ticket->email_thread && count($ticket->email_thread) > 0)
+            <div class="card mb-3 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope-open-text me-2"></i>Email Thread (Rekap Data)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @foreach($ticket->email_thread as $index => $email)
+                    <div class="email-message mb-4 {{ $loop->last ? '' : 'border-bottom pb-4' }}">
+                        {{-- Email Header --}}
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                @if($email['type'] === 'user_complaint')
+                                    <span class="badge bg-primary mb-2">
+                                        <i class="fas fa-user me-1"></i>Email dari User #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @elseif($email['type'] === 'admin_response')
+                                    <span class="badge bg-success mb-2">
+                                        <i class="fas fa-reply me-1"></i>Response Admin #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @elseif($email['type'] === 'user_reply')
+                                    <span class="badge bg-primary mb-2">
+                                        <i class="fas fa-reply me-1"></i>Reply dari User #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @elseif($email['type'] === 'admin_reply')
+                                    <span class="badge bg-success mb-2">
+                                        <i class="fas fa-reply-all me-1"></i>Reply Admin #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @elseif($email['type'] === 'resolution')
+                                    <span class="badge bg-info mb-2">
+                                        <i class="fas fa-check-double me-1"></i>Resolution #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @else
+                                    <span class="badge bg-secondary mb-2">
+                                        <i class="fas fa-envelope me-1"></i>Email #{{ $email['index'] ?? $loop->iteration }}
+                                    </span>
+                                @endif
+                                <div class="text-muted small">
+                                    <strong>From:</strong> {{ $email['from'] ?? 'N/A' }} 
+                                    @if(!empty($email['from_name']))
+                                        ({{ $email['from_name'] }})
+                                    @elseif(!empty($email['sender_name']))
+                                        ({{ $email['sender_name'] }})
+                                    @endif
+                                    <br>
+                                    <strong>To:</strong> {{ $email['to'] ?? 'N/A' }}<br>
+                                    @if(!empty($email['cc']))
+                                        <strong>CC:</strong> {{ $email['cc'] }}<br>
+                                    @endif
+                                    <strong>Time:</strong> {{ \Carbon\Carbon::parse($email['timestamp'])->format('d M Y, H:i') }}
+                                </div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" 
+                                    type="button" 
+                                    data-bs-toggle="collapse" 
+                                    data-bs-target="#email-{{ $index }}"
+                                    aria-expanded="false">
+                                <i class="fas fa-chevron-down"></i> Show/Hide
+                            </button>
+                        </div>
+                        
+                        {{-- Email Subject --}}
+                        <div class="mb-2">
+                            <strong>Subject:</strong> <span class="text-primary">{{ $email['subject'] ?? 'N/A' }}</span>
+                        </div>
+                        
+                        {{-- Email Body --}}
+                        <div class="collapse {{ $index === 0 ? 'show' : '' }}" id="email-{{ $index }}">
+                            <div class="card card-body bg-light">
+                                <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ $email['body'] ?? 'No content' }}</pre>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
             @endif
@@ -433,11 +513,11 @@
                         <i class="fas fa-info-circle"></i> Pastikan masalah sudah terselesaikan sebelum menutup ticket.
                     </div>
                     <div class="mb-3">
-                        <label for="resolution_notes" class="form-label"><strong>Resolution Notes *</strong></label>
+                        <label for="resolution_notes" class="form-label"><strong>Resolution Notes</strong> <span class="text-muted">(Optional)</span></label>
                         <textarea class="form-control" id="resolution_notes" name="resolution_notes" rows="4" 
-                                  placeholder="Jelaskan bagaimana masalah diselesaikan..." 
-                                  required minlength="10" maxlength="1000"></textarea>
-                        <small class="text-muted">Minimal 10 karakter, maksimal 1000 karakter</small>
+                                  placeholder="Jelaskan bagaimana masalah diselesaikan... (Kosongkan jika tidak perlu, akan diisi otomatis: 'Masalah telah diselesaikan')" 
+                                  minlength="10" maxlength="1000"></textarea>
+                        <small class="text-muted">Optional - Minimal 10 karakter jika diisi. Jika dikosongkan, akan otomatis: "Masalah telah diselesaikan"</small>
                     </div>
                 </div>
                 <div class="modal-footer">

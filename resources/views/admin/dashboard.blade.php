@@ -116,7 +116,7 @@
                             </td>
                             <td>{{ \App\Helpers\DateHelper::diffForHumansIndonesian($ticket->created_at) }}</td>
                             <td>
-                                <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-sm btn-primary">
+                                <a href="{{ route('admin.tickets.show', $ticket) }}" class="btn btn-sm btn-primary">
                                     {{ __('app.View') }}
                                 </a>
                             </td>

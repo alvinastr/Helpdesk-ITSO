@@ -12,6 +12,11 @@ class ValidationService
      */
     public function validate(Ticket $ticket)
     {
+        // Bypass validation for email auto-fetch (already validated by email filter)
+        if ($ticket->input_method === 'email_auto_fetch') {
+            return ['valid' => true];
+        }
+        
         // 1. Check Data completeness
         if (empty($ticket->user_name) || empty($ticket->user_email) || 
             empty($ticket->subject) || strlen($ticket->description) < 10) {

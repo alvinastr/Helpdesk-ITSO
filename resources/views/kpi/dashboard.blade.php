@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.app-production')
 
 @section('title', 'KPI Dashboard')
 
@@ -27,7 +27,7 @@
     }
     
     .filter-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
         color: white;
     }
     
@@ -76,6 +76,34 @@
         height: 300px;
     }
     
+    /* Alert Heading Style */
+    .alert-heading {
+        display: block !important;
+        font-weight: 600 !important;
+        font-size: 1.1rem !important;
+        margin-bottom: 0.75rem !important;
+        color: inherit !important;
+    }
+    
+    .alert-info .alert-heading {
+        color: #055160 !important;
+    }
+    
+    .alert-info {
+        background-color: #cff4fc !important;
+        border-color: #9eeaf9 !important;
+    }
+    
+    .alert-info ul {
+        padding-left: 1.5rem;
+        margin-bottom: 0;
+    }
+    
+    .alert-info ul li {
+        margin-bottom: 0.5rem;
+        line-height: 1.6;
+    }
+    
     @media (max-width: 768px) {
         .chart-container {
             height: 250px;
@@ -98,9 +126,19 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="h3 mb-1 fw-bold">KPI Dashboard</h1>
-                <p class="text-muted mb-0">Key Performance Indicators for Helpdesk System</p>
+                <p class="text-muted mb-0">
+                    Key Performance Indicators for Helpdesk System
+                    <br>
+                    <small class="text-success">
+                        <i class="fas fa-clock me-1"></i>
+                        Last Updated: <strong>{{ $lastUpdated }}</strong>
+                    </small>
+                </p>
             </div>
             <div>
+                <button onclick="window.location.reload()" class="btn btn-outline-info" title="Refresh data terbaru">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
                 <button onclick="window.print()" class="btn btn-outline-primary">
                     <i class="fas fa-print me-2"></i>Print
                 </button>
@@ -122,15 +160,19 @@
                         <label class="form-label">
                             <i class="fas fa-calendar-alt me-1"></i>Dari Tanggal
                         </label>
-                        <input type="date" name="date_from" value="{{ request('date_from') }}" 
+                        <input type="date" name="date_from" 
+                               value="{{ request('date_from', now()->subDays(30)->format('Y-m-d')) }}" 
                                class="form-control" placeholder="Pilih tanggal">
+                        <small class="text-white-50">Default: 30 hari lalu</small>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">
                             <i class="fas fa-calendar-check me-1"></i>Sampai Tanggal
                         </label>
-                        <input type="date" name="date_to" value="{{ request('date_to') }}" 
+                        <input type="date" name="date_to" 
+                               value="{{ request('date_to', now()->format('Y-m-d')) }}" 
                                class="form-control" placeholder="Pilih tanggal">
+                        <small class="text-white-50">Default: hari ini</small>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">
@@ -268,7 +310,7 @@
     </div>
 
     <!-- Info Alert -->
-    <div class="alert alert-info border-0 shadow-sm mb-4" role="alert">
+    <div class="alert alert-info alert-persistent border-0 shadow-sm mb-4" role="alert">
         <div class="d-flex align-items-start">
             <i class="fas fa-info-circle fs-4 me-3 mt-1"></i>
             <div>
@@ -313,13 +355,39 @@
         </div>
     </div>
 
+    <!-- Info Box - Penjelasan Tabel -->
+    <div class="alert alert-info alert-persistent border-0 shadow-sm mb-4" role="alert">
+        <h5 class="alert-heading mb-3">
+            <i class="fas fa-info-circle me-2"></i>
+            📋 Panduan Membaca Dashboard KPI
+        </h5>
+        <div class="row">
+            <div class="col-md-4 mb-2">
+                <strong>📊 Tabel Prioritas:</strong>
+                <p class="mb-0 small">Menampilkan statistik ticket berdasarkan tingkat prioritas (Critical, High, Medium, Low) dengan waktu response dan resolution rata-rata.</p>
+            </div>
+            <div class="col-md-4 mb-2">
+                <strong>📂 Tabel Kategori:</strong>
+                <p class="mb-0 small">Menampilkan statistik ticket berdasarkan kategori masalah (Technical, Billing, General) dengan waktu response dan resolution rata-rata.</p>
+            </div>
+            <div class="col-md-4 mb-2">
+                <strong>⚠️ Tabel SLA Issues:</strong>
+                <p class="mb-0 small">Menampilkan ticket yang <strong>melebihi target SLA</strong> (Response > 30 menit atau Resolution > 48 jam) yang memerlukan perhatian khusus.</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Statistics Tables -->
     <div class="row g-4 mb-4">
         <!-- By Priority -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
-                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>KPI Berdasarkan Prioritas</h5>
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%); padding: 1rem;">
+                    <h5 class="mb-0 fw-bold text-white" style="font-size: 1.1rem;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <span style="color: #fff;">KPI Berdasarkan Prioritas</span>
+                    </h5>
+                    <small class="text-white" style="opacity: 0.85;">Analisis performa ticket berdasarkan tingkat prioritas</small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -369,8 +437,12 @@
         <!-- By Category -->
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">
-                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
-                    <h5 class="mb-0"><i class="fas fa-folder-open me-2"></i>KPI Berdasarkan Kategori</h5>
+                <div class="card-header text-white" style="background: linear-gradient(135deg, #5a6268 0%, #343a40 100%); padding: 1rem;">
+                    <h5 class="mb-0 fw-bold text-white" style="font-size: 1.1rem;">
+                        <i class="fas fa-folder-open me-2"></i>
+                        <span style="color: #fff;">KPI Berdasarkan Kategori</span>
+                    </h5>
+                    <small class="text-white" style="opacity: 0.85;">Analisis performa ticket berdasarkan kategori masalah</small>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -420,8 +492,12 @@
 
     <!-- Recent Tickets with KPI Issues -->
     <div class="card border-0 shadow-sm">
-        <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);">
-            <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Tiket dengan Masalah SLA</h5>
+        <div class="card-header text-white" style="background: linear-gradient(135deg, #6c757d 0%, #343a40 100%); padding: 1rem;">
+            <h5 class="mb-0 fw-bold text-white" style="font-size: 1.1rem;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span style="color: #fff;">Tiket dengan Masalah SLA (Response > 30 menit atau Resolution > 48 jam)</span>
+            </h5>
+            <small class="text-white" style="opacity: 0.85;">Daftar ticket yang melebihi target SLA dan memerlukan perhatian khusus</small>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -440,7 +516,7 @@
                         @forelse($slowTickets as $ticket)
                         <tr>
                             <td>
-                                <a href="{{ route('tickets.show', $ticket->id) }}" class="text-decoration-none fw-semibold">
+                                <a href="{{ route('admin.tickets.show', $ticket->id) }}" class="text-decoration-none fw-semibold">
                                     <i class="fas fa-ticket-alt me-1"></i>#{{ $ticket->id }}
                                 </a>
                             </td>

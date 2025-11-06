@@ -35,8 +35,19 @@ class AdminTicketRequest extends FormRequest
             'original_message' => 'nullable|string',
             'channel' => 'required|in:email,whatsapp,call,portal',
             
-            // KPI Field - Email Received Time
+            // KPI Fields
             'email_received_at' => 'nullable|date|before_or_equal:now',
+            'first_response_at' => 'nullable|date|after:email_received_at|before_or_equal:now',
+            'resolved_at' => 'nullable|date|after:first_response_at|before_or_equal:now',
+            
+            // Email Content Fields
+            'email_subject' => 'nullable|string|max:500',
+            'email_body_original' => 'nullable|string',
+            'email_response_admin' => 'nullable|string',
+            'email_resolution_message' => 'nullable|string',
+            'email_from' => 'nullable|email|max:255',
+            'email_to' => 'nullable|string|max:500',
+            'email_cc' => 'nullable|string|max:1000',
             
             // Attachments
             'attachments.*' => 'nullable|file|max:5120' // 5MB

@@ -7,6 +7,7 @@ use App\Models\TicketThread;
 use App\Models\TicketStatusHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class TicketService
@@ -31,9 +32,18 @@ class TicketService
     public function generateTicketNumber(): string
     {
         $date = now()->format('Ymd');
+        
+        // Get last ticket with standard format (not custom numbers like TEST)
+        // Use LIKE for SQLite compatibility - only match 4-digit suffixes
         $lastTicket = Ticket::whereDate('created_at', today())
+            ->where('ticket_number', 'LIKE', 'TKT-' . $date . '-%')
             ->orderBy('id', 'desc')
-            ->first();
+            ->get()
+            ->first(function ($ticket) {
+                // Filter only standard 4-digit format
+                $suffix = substr($ticket->ticket_number, -4);
+                return preg_match('/^\d{4}$/', $suffix);
+            });
         
         $sequence = $lastTicket ? 
             (int) substr($lastTicket->ticket_number, -4) + 1 : 1;
@@ -128,6 +138,15 @@ class TicketService
 
             // Step 7: Auto-categorize
             $this->autoCategorize($ticket);
+            
+            // Step 7.5: Build email thread if parsed_emails provided
+            Log::info("Checking for parsed_emails in data. Keys: " . implode(', ', array_keys($data)));
+            if (isset($data['parsed_emails']) && !empty($data['parsed_emails'])) {
+                Log::info("parsed_emails found, calling buildEmailThread");
+                $this->buildEmailThread($ticket, $data);
+            } else {
+                Log::info("parsed_emails NOT found or empty");
+            }
 
             // Step 8: Send notification
             $this->notificationService->sendTicketReceived($ticket);
@@ -177,9 +196,31 @@ class TicketService
                 
                 // KPI: Set email_received_at jika ada
                 'email_received_at' => $data['email_received_at'] ?? null,
+                
+                // KPI Manual: Set first_response_at dan resolved_at jika ada
+                'first_response_at' => $data['first_response_at'] ?? null,
+                'resolved_at' => $data['resolved_at'] ?? null,
+                
+                // Email Content Fields
+                'email_subject' => $data['email_subject'] ?? null,
+                'email_body_original' => $data['email_body_original'] ?? null,
+                'email_response_admin' => $data['email_response_admin'] ?? null,
+                'email_resolution_message' => $data['email_resolution_message'] ?? null,
+                'email_from' => $data['email_from'] ?? null,
+                'email_to' => $data['email_to'] ?? null,
+                'email_cc' => $data['email_cc'] ?? null,
             ]);
             
-            // Calculate ticket creation delay if email_received_at is set
+            // Build email_thread JSON dari konten email
+            $this->buildEmailThread($ticket, $data);
+            
+            // Auto-set status jika resolved_at sudah diisi
+            if ($ticket->resolved_at) {
+                $ticket->status = 'resolved';
+                $ticket->save();
+            }
+            
+            // Calculate all KPI metrics if email_received_at is set
             if ($ticket->email_received_at) {
                 $this->kpiService->updateTicketKpiMetrics($ticket);
             }
@@ -361,10 +402,13 @@ class TicketService
     /**
      * Reject ticket
      */
-    public function rejectTicket(Ticket $ticket, string $reason, $admin = null): Ticket
+    public function rejectTicket(Ticket $ticket, ?string $reason = null, $admin = null): Ticket
     {
         $adminId = $admin ? $admin->id : Auth::id();
-        $adminName = $admin ? $admin->name : Auth::user()->name;
+        $adminName = $admin ? $admin->name : (Auth::user()?->name ?? 'System');
+        
+        // Use default reason if not provided
+        $reason = $reason ?: 'Ticket ditolak oleh admin';
 
         DB::transaction(function () use ($ticket, $reason, $adminId, $adminName) {
             // Update status using updateStatus method (this will create status history)
@@ -484,10 +528,13 @@ class TicketService
     /**
      * Close ticket
      */
-    public function closeTicket(Ticket $ticket, string $resolutionNotes, $admin = null): Ticket
+    public function closeTicket(Ticket $ticket, ?string $resolutionNotes = null, $admin = null): Ticket
     {
         $adminId = $admin ? $admin->id : Auth::id();
         $adminName = $admin ? $admin->name : Auth::user()->name;
+        
+        // Use default resolution notes if not provided
+        $resolutionNotes = $resolutionNotes ?: 'Masalah telah diselesaikan';
 
         DB::transaction(function () use ($ticket, $resolutionNotes, $adminId, $adminName) {
             // Update status using updateStatus method (this will create status history)
@@ -627,6 +674,95 @@ class TicketService
         }
 
         return $ticket;
+    }
+
+    /**
+     * Build email thread JSON dari konten email yang diinput
+     * Format: array of email messages dengan timestamp
+     * Support unlimited email threads (not limited to 3)
+     */
+    protected function buildEmailThread(Ticket $ticket, array $data): void
+    {
+        Log::info("buildEmailThread called for ticket #{$ticket->ticket_number}");
+        Log::info("Data keys: " . implode(', ', array_keys($data)));
+        
+        $emailThread = [];
+        
+        // Method 1: If data comes from EmailParser (parsed array)
+        if (isset($data['parsed_emails']) && is_array($data['parsed_emails'])) {
+            // Use parsed email data directly (supports unlimited threads)
+            foreach ($data['parsed_emails'] as $email) {
+                $emailThread[] = [
+                    'type' => $email['type'] ?? 'reply',
+                    'timestamp' => $email['timestamp'] ?? now()->toIso8601String(),
+                    'from' => $email['from'] ?? 'Unknown',
+                    'from_name' => $email['from_name'] ?? 'Unknown',
+                    'to' => $email['to'] ?? '',
+                    'cc' => $email['cc'] ?? null,
+                    'subject' => $email['subject'] ?? '',
+                    'body' => $email['body'] ?? '',
+                    'sender_name' => $email['from_name'] ?? 'Unknown',
+                    'index' => $email['index'] ?? 0,
+                ];
+            }
+        }
+        // Method 2: Legacy - from manual form input (backward compatibility)
+        else {
+            // 1. Email Keluhan Pertama (dari User)
+            if (!empty($data['email_body_original'])) {
+                $emailThread[] = [
+                    'type' => 'user_complaint',
+                    'timestamp' => $ticket->email_received_at?->toIso8601String() ?? now()->toIso8601String(),
+                    'from' => $data['email_from'] ?? $ticket->reporter_email ?? 'Unknown',
+                    'from_name' => $ticket->reporter_name ?? 'Unknown',
+                    'to' => $data['email_to'] ?? 'support@example.com',
+                    'cc' => $data['email_cc'] ?? null,
+                    'subject' => $data['email_subject'] ?? $ticket->subject,
+                    'body' => $data['email_body_original'],
+                    'sender_name' => $ticket->reporter_name,
+                    'index' => 1,
+                ];
+            }
+            
+            // 2. Email Response Admin
+            if (!empty($data['email_response_admin'])) {
+                $emailThread[] = [
+                    'type' => 'admin_response',
+                    'timestamp' => $ticket->first_response_at?->toIso8601String() ?? now()->toIso8601String(),
+                    'from' => $data['email_to'] ?? 'support@example.com',
+                    'from_name' => Auth::user()?->name ?? 'Admin',
+                    'to' => $data['email_from'] ?? $ticket->reporter_email ?? 'Unknown',
+                    'cc' => $data['email_cc'] ?? null,
+                    'subject' => 'Re: ' . ($data['email_subject'] ?? $ticket->subject),
+                    'body' => $data['email_response_admin'],
+                    'sender_name' => Auth::user()?->name ?? 'Admin',
+                    'index' => 2,
+                ];
+            }
+            
+            // 3. Email Resolution
+            if (!empty($data['email_resolution_message'])) {
+                $emailThread[] = [
+                    'type' => 'resolution',
+                    'timestamp' => $ticket->resolved_at?->toIso8601String() ?? now()->toIso8601String(),
+                    'from' => $data['email_to'] ?? 'support@example.com',
+                    'from_name' => Auth::user()?->name ?? 'Admin',
+                    'to' => $data['email_from'] ?? $ticket->reporter_email ?? 'Unknown',
+                    'cc' => $data['email_cc'] ?? null,
+                    'subject' => 'Re: [RESOLVED] ' . ($data['email_subject'] ?? $ticket->subject),
+                    'body' => $data['email_resolution_message'],
+                    'sender_name' => Auth::user()?->name ?? 'Admin',
+                    'index' => 3,
+                ];
+            }
+        }
+        
+        // Save email thread jika ada konten
+        if (!empty($emailThread)) {
+            $ticket->update(['email_thread' => $emailThread]);
+            $ticket->refresh();
+            Log::info("Email thread saved for ticket #{$ticket->ticket_number}: " . count($emailThread) . " emails");
+        }
     }
 
     /**

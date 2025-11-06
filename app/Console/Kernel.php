@@ -12,6 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
+        // Fetch emails from IMAP every 5 minutes
+        $schedule->command('emails:fetch')
+                 ->everyFiveMinutes()
+                 ->withoutOverlapping()
+                 ->runInBackground();
+
         // Run SLA check every hour
         $schedule->command('tickets:sla-check')->hourly();
 

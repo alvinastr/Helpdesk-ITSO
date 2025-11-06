@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -76,10 +77,13 @@ class AdminController extends Controller
     public function reject(Request $request, Ticket $ticket)
     {
         $request->validate([
-            'reason' => 'required|string|min:10'
+            'reason' => 'nullable|string|min:10' // Changed to nullable
         ]);
 
-        $this->ticketService->rejectTicket($ticket, $request->reason);
+        // Auto-generate reason if not provided
+        $reason = $request->reason ?: 'Ticket ditolak oleh admin';
+
+        $this->ticketService->rejectTicket($ticket, $reason);
 
         return back()->with('success', "Ticket {$ticket->ticket_number} rejected!");
     }
@@ -123,10 +127,13 @@ class AdminController extends Controller
     public function close(Request $request, Ticket $ticket)
     {
         $request->validate([
-            'resolution_notes' => 'required|string|min:20'
+            'resolution_notes' => 'nullable|string|min:10' // Changed to nullable with lower min
         ]);
 
-        $this->ticketService->closeTicket($ticket, $request->resolution_notes);
+        // Auto-generate resolution notes if not provided
+        $resolutionNotes = $request->resolution_notes ?: 'Masalah telah diselesaikan';
+
+        $this->ticketService->closeTicket($ticket, $resolutionNotes);
 
         return back()->with('success', "Ticket {$ticket->ticket_number} closed!");
     }
@@ -166,7 +173,11 @@ class AdminController extends Controller
     public function storeTicket(\App\Http\Requests\AdminTicketRequest $request)
     {
         try {
+            Log::info('=== Admin Create Ticket Start ===');
+            Log::info('Request data:', $request->all());
+            
             $data = $request->validated();
+            Log::info('Validated data:', $data);
             
             // Add admin info
             $data['created_by_admin'] = Auth::id();
@@ -180,11 +191,25 @@ class AdminController extends Controller
             }
 
             $ticket = $this->ticketService->createTicketByAdmin($data);
+            Log::info('Ticket created successfully:', ['ticket_id' => $ticket->id, 'ticket_number' => $ticket->ticket_number]);
 
             return redirect()
                 ->route('admin.tickets.show', $ticket)
                 ->with('success', "Ticket {$ticket->ticket_number} berhasil dibuat!");
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Validation error:', [
+                'errors' => $e->errors(),
+                'message' => $e->getMessage()
+            ]);
+            return back()
+                ->withErrors($e->errors())
+                ->withInput()
+                ->with('error', 'Validasi gagal: ' . implode(', ', array_keys($e->errors())));
         } catch (\Exception $e) {
+            Log::error('Error creating ticket:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return back()
                 ->withInput()
                 ->with('error', 'Gagal membuat ticket: ' . $e->getMessage());
@@ -206,6 +231,6 @@ class AdminController extends Controller
             'createdByAdmin'
         ]);
 
-        return view('admin.ticket-detail', compact('ticket'));
+        return view('tickets.show', compact('ticket'));
     }
 }

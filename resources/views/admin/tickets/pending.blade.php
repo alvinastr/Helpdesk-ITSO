@@ -77,13 +77,13 @@
                             
                             <div class="col-md-4">
                                 <!-- View Details Button - Prominent -->
-                                <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-3">
+                                <a href="{{ route('admin.tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-3">
                                     <i class="fas fa-eye"></i> Lihat Detail Lengkap
                                 </a>
                                 
                                 <!-- Action Buttons -->
                                 <div class="d-flex flex-column gap-2">
-                                    <form action="/admin/tickets/{{ $ticket->id }}/approve" method="POST">
+                                    <form action="{{ route('admin.tickets.approve', $ticket) }}" method="POST">
                                         @csrf
                                         <button type="submit" class="btn btn-success w-100">
                                             <i class="fas fa-check"></i> {{ __('app.Approve') }}
@@ -103,35 +103,35 @@
                 <div class="modal fade" id="rejectModal{{ $ticket->id }}" tabindex="-1">
                     <div class="modal-dialog">
                         <div class="modal-content">
-                            <form action="/admin/tickets/{{ $ticket->id }}/reject" method="POST">
+                            <form action="{{ route('admin.tickets.reject', $ticket) }}" method="POST">
                                 @csrf
-                                <div class="modal-header bg-danger text-white">
-                                    <h5 class="modal-title">
-                                        <i class="fas fa-times-circle"></i> Tolak Tiket
+                                <div class="modal-header bg-white border-bottom">
+                                    <h5 class="modal-title text-dark">
+                                        <i class="fas fa-times-circle text-danger"></i> Tolak Tiket
                                     </h5>
-                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
-                                <div class="modal-body">
+                                <div class="modal-body bg-white">
                                     <div class="mb-3">
-                                        <label class="form-label">Tiket: <strong>{{ $ticket->ticket_number }}</strong></label>
+                                        <label class="form-label text-dark">Tiket: <strong>{{ $ticket->ticket_number }}</strong></label>
                                         <p class="text-muted small">{{ $ticket->subject }}</p>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="reason{{ $ticket->id }}" class="form-label">
-                                            Alasan Penolakan <span class="text-danger">*</span>
+                                        <label for="reason{{ $ticket->id }}" class="form-label text-dark">
+                                            Alasan Penolakan <span class="text-muted">(Optional)</span>
                                         </label>
                                         <textarea 
                                             id="reason{{ $ticket->id }}"
                                             name="reason" 
                                             class="form-control" 
                                             rows="4" 
-                                            required 
-                                            placeholder="Jelaskan alasan penolakan tiket ini..."
+                                            placeholder="Jelaskan alasan penolakan tiket ini... (Kosongkan jika tidak perlu, akan diisi otomatis: 'Ticket ditolak oleh admin')"
                                         ></textarea>
-                                        <small class="text-muted">Alasan ini akan dikirim ke user via email</small>
+                                        <small class="text-muted d-block mt-1">Optional - Jika dikosongkan, akan otomatis: "Ticket ditolak oleh admin"</small>
+                                        <small class="text-muted d-block">Alasan ini akan dikirim ke user via email</small>
                                     </div>
                                 </div>
-                                <div class="modal-footer">
+                                <div class="modal-footer bg-white border-top">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                                         <i class="fas fa-times"></i> Batal
                                     </button>

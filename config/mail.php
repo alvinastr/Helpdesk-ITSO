@@ -115,4 +115,66 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | IMAP Configuration (untuk fetch emails)
+    |--------------------------------------------------------------------------
+    |
+    | Konfigurasi untuk fetch email otomatis dari mailbox
+    | Gunakan untuk auto-create tickets dari email masuk
+    |
+    */
+
+    'imap' => [
+        'host' => env('IMAP_HOST', 'imap.gmail.com'),
+        'port' => env('IMAP_PORT', 993),
+        'username' => env('IMAP_USERNAME'),
+        'password' => env('IMAP_PASSWORD'),
+        'encryption' => env('IMAP_ENCRYPTION', 'ssl'),
+        'validate_cert' => env('IMAP_VALIDATE_CERT', true),
+        'fetch_limit' => env('IMAP_FETCH_LIMIT', 50), // Max emails per fetch
+
+        // ============================================
+        // EMAIL FILTERING OPTIONS
+        // ============================================
+
+        // Filter by sender domain (whitelist)
+        // Hanya email dari domain ini yang akan diproses
+        // Leave empty [] untuk allow all domains
+        'allowed_sender_domains' => array_filter(explode(',', env('IMAP_ALLOWED_DOMAINS', ''))),
+        // Example: ['bankmega.com', 'gmail.com']
+
+        // Filter by recipient
+        // Email harus dikirim ke salah satu recipient ini (TO atau CC)
+        // Leave empty [] untuk allow all
+        'valid_recipients' => array_filter(explode(',', env('IMAP_VALID_RECIPIENTS', ''))),
+        // Example: ['it.infrastructure@bankmega.com', 'support@bankmega.com']
+
+        // Filter by subject keywords
+        // Subject harus mengandung minimal salah satu keyword ini
+        // Leave empty [] untuk allow all subjects
+        'required_subject_keywords' => array_filter(explode(',', env('IMAP_REQUIRED_KEYWORDS', ''))),
+        // Example: ['bantuan', 'help', 'support', 'masalah', 'problem']
+
+        // Minimum content length (karakter)
+        // Email dengan body terlalu pendek akan di-skip
+        'min_content_length' => env('IMAP_MIN_CONTENT_LENGTH', 10),
+
+        // Fetch emails from last X days only
+        // Leave empty untuk fetch all unread emails
+        'fetch_days_back' => env('IMAP_FETCH_DAYS_BACK'),
+        // Example: 7 (hanya fetch email dari 7 hari terakhir)
+
+        // ============================================
+        // ADMIN EMAIL DETECTION
+        // ============================================
+
+        // Admin email keywords untuk detect email dari support/admin
+        // Digunakan untuk classify email thread
+        'admin_domains' => ['support', 'helpdesk', 'it.infrastructure', 'it-support', 'admin'],
+        
+        // Full admin email addresses (exact match)
+        'admin_emails' => array_filter(explode(',', env('IMAP_ADMIN_EMAILS', 'it.infrastructure@bankmega.com'))),
+    ],
+
 ];

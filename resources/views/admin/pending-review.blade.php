@@ -5,9 +5,9 @@
     <h2 class="mb-4">Pending Review Tickets</h2>
 
     @foreach($tickets as $ticket)
-    <div class="card mb-3 shadow-sm">
-        <div class="card-body">
-            <div class="row">
+    <div class="card mb-3 shadow-sm" style="min-height: 320px;">
+        <div class="card-body d-flex flex-column">
+            <div class="row flex-grow-1">
                 <div class="col-md-8">
                     <div class="d-flex justify-content-between align-items-start mb-2">
                         <h5 class="mb-0">{{ $ticket->subject }}</h5>
@@ -58,7 +58,7 @@
                 
                 <div class="col-md-4">
                     <!-- View Details - Made Prominent -->
-                    <a href="{{ route('tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-2">
+                    <a href="{{ route('admin.tickets.show', $ticket) }}" class="btn btn-outline-primary btn-lg w-100 mb-2">
                         <i class="fas fa-eye"></i> Lihat Detail Lengkap
                     </a>
                     
@@ -72,9 +72,12 @@
                         <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#revisionModal{{ $ticket->id }}">
                             <i class="fas fa-edit"></i> Request Revision
                         </button>
-                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal{{ $ticket->id }}">
-                            <i class="fas fa-times"></i> Reject
-                        </button>
+                        <form action="{{ route('admin.tickets.reject', $ticket) }}" method="POST" class="reject-form-inline" data-ticket-number="{{ $ticket->ticket_number }}">
+                            @csrf
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -133,35 +136,53 @@
             </div>
         </div>
     </div>
-
-    <!-- Reject Modal -->
-    <div class="modal fade" id="rejectModal{{ $ticket->id }}">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form action="{{ route('admin.tickets.reject', $ticket) }}" method="POST">
-                    @csrf
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">Reject Ticket</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Reason for Rejection <span class="text-danger">*</span></label>
-                            <textarea name="reason" class="form-control" rows="4" required placeholder="Mengapa ticket ditolak?"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-danger">Reject Ticket</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
     @endforeach
 
     <div class="d-flex justify-content-center">
         {{ $tickets->links() }}
     </div>
 </div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle reject form submissions with confirmation
+    document.querySelectorAll('.reject-form-inline').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const ticketNumber = this.dataset.ticketNumber;
+            const reason = prompt('Alasan penolakan ticket ' + ticketNumber + '?\n\n(Kosongkan jika tidak perlu, akan otomatis: "Ticket ditolak oleh admin")');
+            
+            // User pressed Cancel
+            if (reason === null) {
+                return false;
+            }
+            
+            // User pressed OK (with or without text)
+            // Add reason as hidden input if provided
+            if (reason.trim() !== '') {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'reason';
+                input.value = reason;
+                this.appendChild(input);
+            }
+            
+            // Confirm the rejection
+            if (confirm('Yakin ingin menolak ticket ' + ticketNumber + '?')) {
+                this.submit();
+            }
+        });
+    });
+    
+    // Handle modal aria-hidden for approve/revision modals
+    document.querySelectorAll('[id^="approveModal"], [id^="revisionModal"]').forEach(function(modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', function() {
+            this.removeAttribute('aria-hidden');
+        });
+    });
+});
+</script>
+@endpush
 @endsection
