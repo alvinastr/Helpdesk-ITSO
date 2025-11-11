@@ -10,18 +10,80 @@ class WhatsAppService
     protected $apiUrl;
     protected $apiToken;
     protected $fromNumber;
+    protected $botUrl;
+    protected $useBot;
 
     public function __construct()
     {
         $this->apiUrl = config('services.whatsapp.api_url');
         $this->apiToken = config('services.whatsapp.token');
         $this->fromNumber = config('services.whatsapp.from_number');
+        $this->botUrl = config('services.whatsapp.bot_url', 'http://localhost:3000');
+        
+        // Use bot if URL is configured
+        $this->useBot = config('services.whatsapp.use_bot', true);
     }
 
     /**
      * Send WhatsApp message
      */
-    public function sendMessage($to, $message)
+    public function sendMessage($to, $message, $ticketNumber = null)
+    {
+        // Try bot first if enabled
+        if ($this->useBot) {
+            return $this->sendViaBot($to, $message, $ticketNumber);
+        }
+        
+        // Fallback to WhatsApp Business API
+        return $this->sendViaBusinessAPI($to, $message);
+    }
+    
+    /**
+     * Send message via Node.js Bot
+     */
+    protected function sendViaBot($to, $message, $ticketNumber = null)
+    {
+        try {
+            // Use /reply endpoint (recommended) jika ada ticket number
+            $endpoint = $ticketNumber ? '/reply' : '/send';
+            
+            $payload = $ticketNumber ? [
+                'phone' => $to,
+                'message' => $message,
+                'ticketId' => $ticketNumber
+            ] : [
+                'number' => $this->normalizePhoneNumber($to),
+                'message' => $message
+            ];
+            
+            $response = Http::timeout(10)
+                ->post($this->botUrl . $endpoint, $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                Log::info("WhatsApp message sent via Bot", [
+                    'to' => $to,
+                    'endpoint' => $endpoint,
+                    'ticket_id' => $ticketNumber,
+                    'message_id' => $data['data']['messageId'] ?? null
+                ]);
+                return true;
+            } else {
+                Log::warning("Bot send failed, trying Business API fallback: " . $response->body());
+                // Fallback to Business API
+                return $this->sendViaBusinessAPI($to, $message);
+            }
+        } catch (\Exception $e) {
+            Log::error("Bot sending failed: {$e->getMessage()}, trying Business API fallback");
+            // Fallback to Business API
+            return $this->sendViaBusinessAPI($to, $message);
+        }
+    }
+    
+    /**
+     * Send message via WhatsApp Business API (Meta)
+     */
+    protected function sendViaBusinessAPI($to, $message)
     {
         try {
             $response = Http::withToken($this->apiToken)
@@ -35,14 +97,14 @@ class WhatsAppService
                 ]);
 
             if ($response->successful()) {
-                Log::info("WhatsApp message sent to {$to}");
+                Log::info("WhatsApp message sent via Business API to {$to}");
                 return true;
             } else {
-                Log::error("WhatsApp API error: " . $response->body());
+                Log::error("WhatsApp Business API error: " . $response->body());
                 return false;
             }
         } catch (\Exception $e) {
-            Log::error("WhatsApp sending failed: {$e->getMessage()}");
+            Log::error("WhatsApp Business API sending failed: {$e->getMessage()}");
             return false;
         }
     }

@@ -45,6 +45,12 @@ return [
         'api_url' => env('WHATSAPP_API_URL', 'https://graph.facebook.com/v17.0/YOUR_PHONE_NUMBER_ID'),
         'token' => env('WHATSAPP_API_TOKEN'),
         'from_number' => env('WHATSAPP_FROM_NUMBER'),
+        // API key for incoming webhook validation
+        'api_key' => env('WHATSAPP_API_KEY', 'your-secret-key-here'),
+        // Bot monitoring URL (Node.js WhatsApp Bot)
+        'bot_url' => env('WHATSAPP_BOT_URL', 'http://localhost:3000'),
+        // Use Node.js Bot instead of Business API
+        'use_bot' => env('WHATSAPP_USE_BOT', true),
     ],
 
     'mailgun' => [

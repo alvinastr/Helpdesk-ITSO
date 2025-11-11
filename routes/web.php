@@ -7,9 +7,17 @@ use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
-// Public routes
+// Public routes - Redirect to login or dashboard
 Route::get('/', function () {
-    return view('welcome');
+    if (Auth::check()) {
+        // If user is logged in, redirect to appropriate dashboard
+        if (Auth::user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        }
+        return redirect()->route('dashboard');
+    }
+    // If not logged in, redirect to login page
+    return redirect()->route('login');
 });
 
 // Auth routes
@@ -56,6 +64,25 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/email-monitor', [App\Http\Controllers\Admin\EmailMonitorController::class, 'index'])->name('admin.email-monitor');
     Route::post('/email-monitor/test-fetch', [App\Http\Controllers\Admin\EmailMonitorController::class, 'testFetch'])->name('admin.email-monitor.test-fetch');
     Route::get('/email-monitor/live-stats', [App\Http\Controllers\Admin\EmailMonitorController::class, 'liveStats'])->name('admin.email-monitor.live-stats');
+
+    // WhatsApp Tickets (Admin UI)
+    Route::get('/whatsapp', [App\Http\Controllers\Admin\WhatsAppController::class, 'index'])->name('admin.whatsapp.index');
+    
+    // WhatsApp Bot Monitoring Dashboard (HARUS SEBELUM /whatsapp/{ticket})
+    Route::get('/whatsapp/monitor', [App\Http\Controllers\WhatsAppMonitorController::class, 'index'])->name('whatsapp.monitor');
+    Route::get('/whatsapp/api/status', [App\Http\Controllers\WhatsAppMonitorController::class, 'apiStatus'])->name('whatsapp.api.status');
+    Route::get('/whatsapp/api/logs', [App\Http\Controllers\WhatsAppMonitorController::class, 'logs'])->name('whatsapp.api.logs');
+    Route::get('/whatsapp/api/statistics', [App\Http\Controllers\WhatsAppMonitorController::class, 'statistics'])->name('whatsapp.api.statistics');
+    
+    Route::get('/whatsapp/dashboard', [App\Http\Controllers\Admin\WhatsAppController::class, 'dashboard'])->name('admin.whatsapp.dashboard');
+    
+    // Route dengan parameter {ticket} HARUS DI PALING BAWAH
+    Route::get('/whatsapp/{ticket}', [App\Http\Controllers\Admin\WhatsAppController::class, 'show'])->name('admin.whatsapp.show');
+    Route::post('/whatsapp/{ticket}/assign', [App\Http\Controllers\Admin\WhatsAppController::class, 'assign'])->name('admin.whatsapp.assign');
+    Route::post('/whatsapp/{ticket}/status', [App\Http\Controllers\Admin\WhatsAppController::class, 'updateStatus'])->name('admin.whatsapp.status');
+    Route::post('/whatsapp/{ticket}/response', [App\Http\Controllers\Admin\WhatsAppController::class, 'addResponse'])->name('admin.whatsapp.response');
+    Route::post('/whatsapp/{ticket}/template', [App\Http\Controllers\Admin\WhatsAppController::class, 'sendTemplate'])->name('admin.whatsapp.template');
+    Route::put('/whatsapp/{ticket}/update-actual-time', [App\Http\Controllers\Admin\WhatsAppController::class, 'updateActualTime'])->name('admin.whatsapp.update-actual-time');
 });
 
 // KPI API routes (for AJAX calls)
@@ -63,7 +90,3 @@ Route::prefix('api')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/kpi/summary', [App\Http\Controllers\KpiDashboardController::class, 'apiSummary'])->name('api.kpi.summary');
     Route::get('/kpi/trends', [App\Http\Controllers\KpiDashboardController::class, 'apiTrends'])->name('api.kpi.trends');
 });
-
-Auth::routes();
-
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');

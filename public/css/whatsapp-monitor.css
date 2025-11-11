@@ -1,0 +1,73 @@
+/* WhatsApp Monitoring Dashboard Custom Styles */
+
+/* Border colors for status cards */
+.border-start {
+    border-left-width: 5px !important;
+}
+
+.border-left-success {
+    border-left: 5px solid #1cc88a !important;
+}
+
+.border-left-danger {
+    border-left: 5px solid #e74a3b !important;
+}
+
+.border-left-info {
+    border-left: 5px solid #36b9cc !important;
+}
+
+.border-left-primary {
+    border-left: 5px solid #4e73df !important;
+}
+
+.border-left-warning {
+    border-left: 5px solid #f6c23e !important;
+}
+
+/* Card hover effects */
+.card:hover {
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* Smooth animations for refresh icon */
+.fa-spin {
+    animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Table responsive improvements */
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+/* Badge improvements */
+.badge {
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+
+/* Chart container */
+canvas {
+    max-height: 300px;
+}
+
+/* Status indicators */
+.status-online {
+    color: #1cc88a;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.status-offline {
+    color: #e74a3b;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}

@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            // WhatsApp webhook API key validation middleware
+            'whatsapp.api' => \App\Http\Middleware\ValidateWhatsAppApiKey::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

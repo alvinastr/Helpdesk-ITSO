@@ -113,7 +113,10 @@ class TicketService
                 'priority' => $data['priority'] ?? 'medium',
                 'assigned_to' => $data['assigned_to'] ?? null,
                 'created_by_admin' => $data['created_by_admin'] ?? null,
-                'status' => 'pending_keluhan'
+                'status' => 'pending_keluhan',
+                
+                // KPI Timestamps (untuk email auto-fetch)
+                'email_received_at' => $data['email_received_at'] ?? null,
             ]);
 
             // Step 4: Create initial thread
@@ -690,6 +693,9 @@ class TicketService
         
         // Method 1: If data comes from EmailParser (parsed array)
         if (isset($data['parsed_emails']) && is_array($data['parsed_emails'])) {
+            // Extract KPI timestamps dari email thread
+            $kpiUpdates = [];
+            
             // Use parsed email data directly (supports unlimited threads)
             foreach ($data['parsed_emails'] as $email) {
                 $emailThread[] = [
@@ -704,6 +710,33 @@ class TicketService
                     'sender_name' => $email['from_name'] ?? 'Unknown',
                     'index' => $email['index'] ?? 0,
                 ];
+                
+                // Extract KPI timestamps
+                $type = $email['type'] ?? '';
+                $timestamp = $email['timestamp'] ?? null;
+                
+                // First email = email_received_at (already set during ticket creation)
+                // But we still verify it
+                if ($type === 'user_complaint' && $timestamp && !$ticket->email_received_at) {
+                    $kpiUpdates['email_received_at'] = $timestamp;
+                }
+                
+                // First admin response = first_response_at
+                if (($type === 'admin_response' || $type === 'admin_reply') && $timestamp && !isset($kpiUpdates['first_response_at'])) {
+                    $kpiUpdates['first_response_at'] = $timestamp;
+                }
+                
+                // Resolution email = resolved_at
+                if ($type === 'resolution' && $timestamp) {
+                    $kpiUpdates['resolved_at'] = $timestamp;
+                }
+            }
+            
+            // Update KPI fields if found
+            if (!empty($kpiUpdates)) {
+                $ticket->update($kpiUpdates);
+                $ticket->refresh();
+                Log::info("KPI timestamps updated for ticket #{$ticket->ticket_number}: " . json_encode($kpiUpdates));
             }
         }
         // Method 2: Legacy - from manual form input (backward compatibility)
@@ -762,6 +795,39 @@ class TicketService
             $ticket->update(['email_thread' => $emailThread]);
             $ticket->refresh();
             Log::info("Email thread saved for ticket #{$ticket->ticket_number}: " . count($emailThread) . " emails");
+            
+            // Calculate KPI metrics after timestamps are set
+            $this->calculateKpiMetrics($ticket);
+        }
+    }
+    
+    /**
+     * Calculate KPI metrics (response_time and resolution_time)
+     */
+    protected function calculateKpiMetrics(Ticket $ticket): void
+    {
+        $updates = [];
+        
+        // Calculate response_time_minutes
+        if ($ticket->email_received_at && $ticket->first_response_at) {
+            $responseTime = \Carbon\Carbon::parse($ticket->email_received_at)
+                ->diffInMinutes(\Carbon\Carbon::parse($ticket->first_response_at));
+            $updates['response_time_minutes'] = $responseTime;
+        }
+        
+        // Calculate resolution_time_minutes
+        if ($ticket->email_received_at && $ticket->resolved_at) {
+            $resolutionTime = \Carbon\Carbon::parse($ticket->email_received_at)
+                ->diffInMinutes(\Carbon\Carbon::parse($ticket->resolved_at));
+            $updates['resolution_time_minutes'] = $resolutionTime;
+        }
+        
+        // Update if there are calculated metrics
+        if (!empty($updates)) {
+            $ticket->update($updates);
+            $responseTimeMsg = $updates['response_time_minutes'] ?? 'N/A';
+            $resolutionTimeMsg = $updates['resolution_time_minutes'] ?? 'N/A';
+            Log::info("KPI metrics calculated for ticket #{$ticket->ticket_number}: response_time={$responseTimeMsg} min, resolution_time={$resolutionTimeMsg} min");
         }
     }
 

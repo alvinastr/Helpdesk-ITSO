@@ -25,7 +25,22 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    protected $redirectTo = '/dashboard';
+
+    /**
+     * Get the post login redirect path based on user role.
+     *
+     * @return string
+     */
+    public function redirectTo()
+    {
+        $user = $this->guard()->user();
+        
+        if ($user && $user->isAdmin()) {
+            return '/admin/dashboard';
+        }
+        return '/dashboard';
+    }
 
     /**
      * Create a new controller instance.

@@ -27,138 +27,137 @@
             --danger-color: #dc3545;
             --warning-color: #ffc107;
             --info-color: #0dcaf0;
-            --navbar-height: 76px;
+            --navbar-height: 56px;
         }
         
         body {
             background-color: #f8f9fa;
+            padding-top: 0;
+            margin: 0;
+        }
+        
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Minimalist Navbar Styles */
+        .navbar {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #ffffff !important;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 0;
+            position: sticky;
+            top: 0;
+            z-index: 1020;
+        }
+        
+        .navbar .container-fluid {
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
         
         .navbar-brand {
-            font-weight: 700;
-            font-size: 1.5rem;
+            font-weight: 600;
+            font-size: 1.25rem;
             color: var(--primary-color) !important;
-            transition: all 0.3s ease;
+            padding: 0.25rem 0;
         }
         
-        .navbar-brand:hover {
-            transform: scale(1.05);
+        .navbar-brand i {
+            font-size: 1.1rem;
         }
         
-        .navbar {
-            padding: 0.75rem 0;
-            border-bottom: 3px solid var(--primary-color);
-            transition: box-shadow 0.3s ease;
+        main {
+            flex: 1;
         }
         
         .navbar-light .navbar-nav .nav-link {
-            color: #495057;
+            color: #6c757d;
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            transition: all 0.2s ease;
-            margin: 0 0.25rem;
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.15s ease;
+            margin: 0 0.1rem;
+        }
+        
+        .navbar-light .navbar-nav .nav-link i {
+            font-size: 0.85rem;
+            opacity: 0.8;
         }
         
         .navbar-light .navbar-nav .nav-link:hover {
             color: var(--primary-color);
-            background-color: rgba(13, 110, 253, 0.1);
+            background-color: #f8f9fa;
         }
         
         .navbar-light .navbar-nav .nav-link.active {
             color: var(--primary-color);
-            background-color: rgba(13, 110, 253, 0.1);
+            background-color: rgba(13, 110, 253, 0.08);
             font-weight: 600;
-            position: relative;
         }
         
-        .navbar-light .navbar-nav .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: -0.75rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 60%;
-            height: 3px;
-            background-color: var(--primary-color);
-            border-radius: 2px 2px 0 0;
+        /* Quick Action Buttons */
+        .nav-quick-action {
+            padding: 0.4rem !important;
+            margin: 0 0.15rem !important;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50% !important;
         }
         
-        /* Skip to main content link for accessibility */
-        .skip-to-main {
-            position: absolute;
-            top: -40px;
-            left: 0;
-            background: var(--primary-color);
-            color: white;
-            padding: 8px 16px;
-            text-decoration: none;
-            z-index: 100;
-            border-radius: 0 0 4px 0;
+        .nav-quick-action i {
+            font-size: 1rem;
         }
         
-        .skip-to-main:focus {
-            top: 0;
-        }
-        
+        /* Compact Dropdown Menu */
         .dropdown-menu {
-            border: none;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+            border-radius: 0.375rem;
             padding: 0.5rem;
-            margin-top: 0.5rem;
-            animation: slideDown 0.3s ease;
-        }
-        
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            margin-top: 0.25rem;
+            min-width: 200px;
         }
         
         .dropdown-item {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            transition: all 0.2s ease;
+            padding: 0.4rem 0.75rem;
+            border-radius: 0.25rem;
+            transition: all 0.15s ease;
             font-weight: 500;
-            color: #212529 !important;
+            font-size: 0.9rem;
+        }
+        
+        .dropdown-item i {
+            width: 18px;
+            text-align: center;
+            font-size: 0.85rem;
         }
         
         .dropdown-item:hover {
-            background-color: rgba(13, 110, 253, 0.1);
-            color: var(--primary-color) !important;
-            transform: translateX(5px);
+            background-color: #f8f9fa;
+            color: var(--primary-color);
         }
         
         .dropdown-item.active {
-            background-color: rgba(13, 110, 253, 0.15);
-            color: var(--primary-color) !important;
+            background-color: rgba(13, 110, 253, 0.08);
+            color: var(--primary-color);
             font-weight: 600;
-            position: relative;
-        }
-        
-        .dropdown-item.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 3px;
-            background-color: var(--primary-color);
         }
         
         .dropdown-header {
-            padding: 0.5rem 1rem;
+            padding: 0.4rem 0.75rem;
             font-weight: 700;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             letter-spacing: 0.05em;
             color: #6c757d !important;
-            margin-top: 0.25rem;
+            text-transform: uppercase;
         }
         
         .dropdown-item i {
@@ -167,8 +166,20 @@
         }
         
         .dropdown-divider {
-            margin: 0.5rem 0;
-            opacity: 0.1;
+            margin: 0.4rem 0;
+            opacity: 0.15;
+        }
+        
+        /* User Avatar in Navbar */
+        .user-avatar-sm {
+            width: 32px;
+            height: 32px;
+            font-size: 0.85rem;
+        }
+        
+        .user-info-compact {
+            font-size: 0.85rem;
+            line-height: 1.2;
         }
         
         .badge {
@@ -176,6 +187,85 @@
             font-weight: 500;
             padding: 0.375rem 0.75rem;
             border-radius: 0.375rem;
+        }
+        
+        /* Pagination Styles */
+        .pagination {
+            margin: 1.5rem 0 !important;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .pagination .page-item {
+            margin: 0 !important;
+        }
+        
+        .pagination .page-link {
+            color: var(--primary-color) !important;
+            background-color: #ffffff !important;
+            border: 1px solid #dee2e6 !important;
+            padding: 0.5rem 0.75rem !important;
+            font-size: 0.875rem !important;
+            border-radius: 0.375rem !important;
+            margin: 0 !important;
+            transition: all 0.15s ease !important;
+            min-width: 40px;
+            min-height: 40px;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            line-height: 1 !important;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: #f8f9fa !important;
+            border-color: var(--primary-color) !important;
+            color: var(--primary-color) !important;
+            transform: translateY(-1px);
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: #ffffff !important;
+            font-weight: 600 !important;
+            z-index: 3;
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d !important;
+            background-color: #ffffff !important;
+            border-color: #dee2e6 !important;
+            cursor: not-allowed !important;
+            opacity: 0.5;
+        }
+        
+        /* Fix pagination arrow/icon size */
+        .pagination .page-link svg,
+        .pagination .page-link i {
+            width: 0.875rem !important;
+            height: 0.875rem !important;
+            font-size: 0.875rem !important;
+            vertical-align: middle !important;
+            display: inline-block !important;
+            max-width: 1rem !important;
+            max-height: 1rem !important;
+        }
+        
+        /* Ensure SVG doesn't get too large */
+        .pagination svg {
+            max-width: 1rem !important;
+            max-height: 1rem !important;
+            width: 1rem !important;
+            height: 1rem !important;
+        }
+        
+        /* Remove default Bootstrap pagination spacing */
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            border-radius: 0.375rem !important;
         }
         
         .card {
@@ -364,18 +454,42 @@
         
         /* Responsive Navbar */
         @media (max-width: 768px) {
+            .navbar {
+                padding: 0.4rem 0;
+            }
+            
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
             .navbar-nav {
-                padding: 1rem 0;
+                padding: 0.5rem 0;
             }
             
             .navbar-nav .nav-link {
-                padding: 0.75rem 1rem;
-                margin: 0.25rem 0;
+                padding: 0.6rem 1rem;
+                margin: 0.2rem 0;
+                border-radius: 0.375rem;
+            }
+            
+            .navbar-nav .nav-link i {
+                width: 24px;
             }
             
             .dropdown-menu {
-                margin-top: 0;
+                margin-top: 0.25rem;
                 border-radius: 0.375rem;
+            }
+            
+            .user-info-compact {
+                display: inline !important;
+            }
+        }
+        
+        /* Hide text on smaller screens, show icons only */
+        @media (max-width: 991px) {
+            .nav-link span:not(.badge) {
+                display: none !important;
             }
         }
         
@@ -395,187 +509,117 @@
     @stack('styles')
 </head>
 <body>
-    <!-- Skip to main content for accessibility -->
-    <a href="#main-content" class="skip-to-main">Skip to main content</a>
-    
     <div id="app">
         <!-- Navigation -->
-        <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm" role="navigation" aria-label="Main navigation">
-            <div class="container">
+        <nav class="navbar navbar-expand-md navbar-light bg-white" role="navigation" aria-label="Main navigation">
+            <div class="container-fluid">
+                <!-- Brand -->
                 <a class="navbar-brand" href="{{ url('/') }}">
-                    <i class="fas fa-headset me-2"></i>
-                    {{ config('app.name', 'ITSO') }}
+                    <i class="fas fa-headset"></i>
+                    <span class="ms-2">{{ config('app.name', 'ITSO') }}</span>
                 </a>
                 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <!-- Mobile Toggle -->
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <!-- Left Side -->
-                    <ul class="navbar-nav me-auto">
-                        @auth
+                    @auth
+                        <!-- Main Navigation -->
+                        <ul class="navbar-nav me-auto">
                             <li class="nav-item">
                                 <a class="nav-link {{ Request::is('dashboard') ? 'active' : '' }}" 
-                                   href="{{ route('dashboard') }}"
-                                   aria-current="{{ Request::is('dashboard') ? 'page' : 'false' }}">
-                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                   href="{{ route('dashboard') }}">
+                                    <i class="fas fa-home"></i>
+                                    <span class="d-none d-lg-inline ms-1">Dashboard</span>
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link {{ Request::is('tickets') || Request::is('tickets/*') ? 'active' : '' }}" 
-                                   href="{{ route('tickets.index') }}"
-                                   aria-current="{{ Request::is('tickets*') ? 'page' : 'false' }}">
-                                    <i class="fas fa-ticket-alt me-1"></i>My Tickets
+                                <a class="nav-link {{ Request::is('tickets*') ? 'active' : '' }}" 
+                                   href="{{ route('tickets.index') }}">
+                                    <i class="fas fa-ticket-alt"></i>
+                                    <span class="d-none d-lg-inline ms-1">Tickets</span>
                                 </a>
                             </li>
+                            
                             @if(auth()->user()->role === 'admin')
+                                <!-- Admin Quick Actions -->
+                                <li class="nav-item">
+                                    <a class="nav-link {{ Request::is('admin/pending-review') ? 'active' : '' }}" 
+                                       href="{{ route('admin.pending-review') }}"
+                                       title="Pending Review">
+                                        <i class="fas fa-clock"></i>
+                                        @php
+                                            $pendingCount = \App\Models\Ticket::where('status', 'pending_review')->count();
+                                        @endphp
+                                        @if($pendingCount > 0)
+                                            <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">{{ $pendingCount }}</span>
+                                        @endif
+                                        <span class="d-none d-lg-inline ms-1">Review</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link {{ Request::is('admin/kpi*') ? 'active' : '' }}" 
+                                       href="{{ route('kpi.dashboard') }}"
+                                       title="KPI Dashboard">
+                                        <i class="fas fa-chart-line"></i>
+                                        <span class="d-none d-lg-inline ms-1">KPI</span>
+                                    </a>
+                                </li>
+                                
+                                <!-- Admin Dropdown -->
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle {{ Request::is('admin/*') ? 'active' : '' }}" 
+                                    <a class="nav-link dropdown-toggle {{ Request::is('admin/*') && !Request::is('admin/pending-review') && !Request::is('admin/kpi*') ? 'active' : '' }}" 
                                        href="#" 
                                        id="adminDropdown"
-                                       role="button" 
-                                       data-bs-toggle="dropdown" 
-                                       aria-expanded="false"
-                                       aria-haspopup="true">
-                                        <i class="fas fa-tools me-1"></i>Admin
+                                       data-bs-toggle="dropdown">
+                                        <i class="fas fa-cog"></i>
+                                        <span class="d-none d-lg-inline ms-1">More</span>
                                     </a>
-                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown" style="min-width: 300px;">
-                                        <!-- Dashboard -->
-                                        <li><a class="dropdown-item {{ Request::is('admin/dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">
-                                            <i class="fas fa-tachometer-alt me-2 text-primary"></i>Admin Dashboard
+                                    <ul class="dropdown-menu dropdown-menu-start">
+                                        <li><h6 class="dropdown-header">Admin Tools</h6></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">
+                                            <i class="fas fa-tachometer-alt"></i> Admin Dashboard
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.tickets.create') }}">
+                                            <i class="fas fa-plus"></i> Create Ticket
                                         </a></li>
                                         <li><hr class="dropdown-divider"></li>
-                                        
-                                        <!-- Ticket Management -->
-                                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-                                            <i class="fas fa-ticket-alt me-2"></i>Ticket Management
-                                        </h6></li>
-                                        <li><a class="dropdown-item {{ Request::is('admin/pending-review') ? 'active' : '' }}" href="{{ route('admin.pending-review') }}">
-                                            <i class="fas fa-clock me-2 text-warning"></i>Pending Review
-                                            @php
-                                                $pendingCount = \App\Models\Ticket::where('status', 'pending_review')->count();
-                                            @endphp
-                                            @if($pendingCount > 0)
-                                                <span class="badge bg-warning text-dark ms-2">{{ $pendingCount }}</span>
-                                            @endif
-                                        </a></li>
-                                        <li><a class="dropdown-item {{ Request::is('admin/tickets/create') ? 'active' : '' }}" href="{{ route('admin.tickets.create') }}">
-                                            <i class="fas fa-plus-circle me-2 text-success"></i>Create Ticket (Admin)
-                                        </a></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        
-                                        <!-- Reports & Analytics -->
-                                        <li><h6 class="dropdown-header text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-                                            <i class="fas fa-chart-bar me-2"></i>Reports & Analytics
-                                        </h6></li>
-                                        <li><a class="dropdown-item {{ Request::is('admin/kpi*') ? 'active' : '' }}" href="{{ route('kpi.dashboard') }}">
-                                            <i class="fas fa-chart-line me-2 text-info"></i>KPI Dashboard
-                                        </a></li>
-                                        <li><a class="dropdown-item {{ Request::is('admin/reports*') ? 'active' : '' }}" href="{{ route('admin.reports') }}">
-                                            <i class="fas fa-file-alt me-2 text-secondary"></i>Ticket Reports
+                                        <li><h6 class="dropdown-header">Reports</h6></li>
+                                        <li><a class="dropdown-item" href="{{ route('admin.reports') }}">
+                                            <i class="fas fa-file-alt"></i> Ticket Reports
                                         </a></li>
                                     </ul>
                                 </li>
                             @endif
-                        @endauth
-                    </ul>
+                        </ul>
 
-                    <!-- Right Side -->
-                    <ul class="navbar-nav ms-auto">
-                        @guest
-                            @if (Route::has('login'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('login') }}">
-                                        <i class="fas fa-sign-in-alt me-1"></i>Login
-                                    </a>
-                                </li>
-                            @endif
-                            @if (Route::has('register'))
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{{ route('register') }}">
-                                        <i class="fas fa-user-plus me-1"></i>Register
-                                    </a>
-                                </li>
-                            @endif
-                        @else
+                        <!-- User Menu -->
+                        <ul class="navbar-nav">
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle d-flex align-items-center" 
+                                <a class="nav-link dropdown-toggle p-1" 
                                    href="#" 
                                    id="userDropdown"
-                                   role="button" 
-                                   data-bs-toggle="dropdown"
-                                   aria-expanded="false"
-                                   aria-haspopup="true">
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-2">
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
-                                                 style="width: 32px; height: 32px; font-size: 0.875rem; font-weight: 600;"
-                                                 role="img"
-                                                 aria-label="User avatar">
-                                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                                            </div>
-                                        </div>
-                                        <div class="d-none d-md-block">
-                                            <div class="fw-semibold" style="font-size: 0.9rem;">{{ Auth::user()->name }}</div>
-                                            <div class="text-muted" style="font-size: 0.75rem;">
-                                                @if(Auth::user()->role === 'admin')
-                                                    <i class="fas fa-shield-alt me-1"></i>Administrator
-                                                @else
-                                                    <i class="fas fa-user me-1"></i>User
-                                                @endif
-                                            </div>
-                                        </div>
+                                   data-bs-toggle="dropdown">
+                                    <div class="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center user-avatar-sm">
+                                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                                     </div>
+                                    <span class="d-none d-md-inline ms-2 user-info-compact">{{ Auth::user()->name }}</span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown" style="min-width: 280px;">
-                                    <li class="px-3 py-2 border-bottom">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" 
-                                                 style="width: 48px; height: 48px; font-size: 1.25rem; font-weight: 600;"
-                                                 role="img"
-                                                 aria-label="User avatar">
-                                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <div class="fw-bold text-dark">{{ Auth::user()->name }}</div>
-                                                <div class="text-muted small">{{ Auth::user()->email }}</div>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge bg-{{ Auth::user()->role === 'admin' ? 'danger' : 'primary' }} bg-opacity-10 text-{{ Auth::user()->role === 'admin' ? 'danger' : 'primary' }}">
-                                                @if(Auth::user()->role === 'admin')
-                                                    <i class="fas fa-shield-alt me-1"></i>Administrator
-                                                @else
-                                                    <i class="fas fa-user me-1"></i>User
-                                                @endif
-                                            </span>
-                                        </div>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li class="px-3 py-2">
+                                        <div class="fw-semibold">{{ Auth::user()->name }}</div>
+                                        <div class="text-muted small">{{ Auth::user()->email }}</div>
+                                        <span class="badge bg-{{ Auth::user()->role === 'admin' ? 'danger' : 'primary' }} mt-2">
+                                            {{ Auth::user()->role === 'admin' ? 'Admin' : 'User' }}
+                                        </span>
                                     </li>
-                                    <li>
-                                        <a class="dropdown-item text-dark" href="{{ route('dashboard') }}">
-                                            <i class="fas fa-home me-2"></i>Dashboard
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item text-dark" href="{{ route('tickets.index') }}">
-                                            <i class="fas fa-ticket-alt me-2"></i>My Tickets
-                                        </a>
-                                    </li>
-                                    @if(auth()->user()->role === 'admin')
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item text-dark" href="{{ route('admin.dashboard') }}">
-                                                <i class="fas fa-shield-alt me-2 text-danger"></i>Admin Panel
-                                            </a>
-                                        </li>
-                                    @endif
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <a class="dropdown-item text-danger" 
-                                           href="{{ route('logout') }}"
+                                        <a class="dropdown-item" href="{{ route('logout') }}"
                                            onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            <i class="fas fa-sign-out-alt"></i> Logout
                                         </a>
                                         <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                             @csrf
@@ -583,8 +627,26 @@
                                     </li>
                                 </ul>
                             </li>
-                        @endguest
-                    </ul>
+                        </ul>
+                    @else
+                        <!-- Guest Menu -->
+                        <ul class="navbar-nav ms-auto">
+                            @if (Route::has('login'))
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('login') }}">
+                                        <i class="fas fa-sign-in-alt"></i> Login
+                                    </a>
+                                </li>
+                            @endif
+                            @if (Route::has('register'))
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('register') }}">
+                                        <i class="fas fa-user-plus"></i> Register
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    @endauth
                 </div>
             </div>
         </nav>
@@ -592,7 +654,7 @@
         <!-- Main Content -->
         <main class="py-4" id="main-content" role="main">
             @if(session('success'))
-                <div class="container">
+                <div class="container-fluid">
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i>{{ session('success') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -601,7 +663,7 @@
             @endif
 
             @if(session('error'))
-                <div class="container">
+                <div class="container-fluid">
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-circle me-2"></i>{{ session('error') }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
