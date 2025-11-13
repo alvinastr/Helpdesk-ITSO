@@ -167,7 +167,7 @@ class AdminTicketManagementTest extends TestCase
             ->get('/admin/tickets/create');
         
         $response->assertStatus(200);
-        $response->assertViewIs('admin.tickets.create');
+        $response->assertViewIs('admin.create-ticket'); // Fixed view name
     }
 
     /** @test */

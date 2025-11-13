@@ -28,8 +28,8 @@
                                     <div class="card-body">
                                         <div class="d-flex justify-content-between">
                                             <div>
-                                                <h4 class="mb-0">{{ $stats['pending_review'] ?? 0 }}</h4>
-                                                <p class="mb-0">Pending Review</p>
+                                                <h4 class="mb-0">{{ $stats['pending_keluhan'] ?? 0 }}</h4>
+                                                <p class="mb-0">Pending Keluhan</p>
                                             </div>
                                             <div class="align-self-center">
                                                 <i class="fas fa-clock fa-2x"></i>
@@ -197,8 +197,8 @@
                             <div class="col-md-3 mb-3">
                                 <div class="card text-center">
                                     <div class="card-body">
-                                        <h3 class="text-info">{{ $stats['pending_review'] ?? 0 }}</h3>
-                                        <p class="mb-0">Pending Review</p>
+                                        <h3 class="text-info">{{ $stats['pending_keluhan'] ?? 0 }}</h3>
+                                        <p class="mb-0">Pending Keluhan</p>
                                     </div>
                                 </div>
                             </div>

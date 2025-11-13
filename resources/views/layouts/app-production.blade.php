@@ -386,7 +386,7 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
-        .status-pending_review { 
+        .status-pending_keluhan { 
             background-color: #fff3cd; 
             color: #664d03; 
             border-left: 4px solid #ffc107;
@@ -513,7 +513,7 @@
                                        title="Pending Review">
                                         <i class="fas fa-clock"></i>
                                         @php
-                                            $pendingCount = \App\Models\Ticket::where('status', 'pending_review')->count();
+                                            $pendingCount = \App\Models\Ticket::where('status', 'pending_keluhan')->count();
                                         @endphp
                                         @if($pendingCount > 0)
                                             <span class="badge bg-warning text-dark rounded-pill ms-1" style="font-size: 0.7rem; padding: 0.2rem 0.4rem;">{{ $pendingCount }}</span>

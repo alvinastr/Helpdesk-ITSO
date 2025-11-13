@@ -130,7 +130,7 @@
                 <div class="col-md-3">
                     <select name="status" class="form-control">
                         <option value="">Semua Status</option>
-                        <option value="pending_review" {{ request('status') == 'pending_review' ? 'selected' : '' }}>{{ __('app.pending_review') }}</option>
+                        <option value="pending_keluhan" {{ request('status') == 'pending_keluhan' ? 'selected' : '' }}>{{ __('app.pending_keluhan') }}</option>
                         <option value="open" {{ request('status') == 'open' ? 'selected' : '' }}>{{ __('app.open') }}</option>
                         <option value="in_progress" {{ request('status') == 'in_progress' ? 'selected' : '' }}>{{ __('app.in_progress') }}</option>
                         <option value="resolved" {{ request('status') == 'resolved' ? 'selected' : '' }}>{{ __('app.resolved') }}</option>

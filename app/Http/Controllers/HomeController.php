@@ -30,11 +30,11 @@ class HomeController extends Controller
         $stats = [
             'total_tickets' => Ticket::where('user_id', $user->id)->count(),
             'open_tickets' => Ticket::where('user_id', $user->id)
-                ->whereIn('status', ['open', 'in_progress', 'pending_review'])->count(),
+                ->whereIn('status', ['open', 'in_progress', 'pending_keluhan'])->count(),
             'closed_tickets' => Ticket::where('user_id', $user->id)
                 ->where('status', 'closed')->count(),
-            'pending_review' => Ticket::where('user_id', $user->id)
-                ->where('status', 'pending_review')->count(),
+            'pending_keluhan' => Ticket::where('user_id', $user->id)
+                ->where('status', 'pending_keluhan')->count(),
         ];
 
         $recent_tickets = Ticket::where('user_id', $user->id)

@@ -9,7 +9,7 @@
     <div class="stats">
         <h2>Statistics</h2>
         <ul>
-            <li>Pending Review: {{ $stats['pending_review'] ?? 0 }}</li>
+            <li>Pending Keluhan: {{ $stats['pending_keluhan'] ?? 0 }}</li>
             <li>Open: {{ $stats['open'] ?? 0 }}</li>
             <li>In Progress: {{ $stats['in_progress'] ?? 0 }}</li>
             <li>Resolved: {{ $stats['resolved'] ?? 0 }}</li>

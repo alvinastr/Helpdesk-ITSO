@@ -31,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
         // Set timezone for Carbon
         date_default_timezone_set('Asia/Jakarta');
         
+        // Share errors to all views (for test compatibility)
+        view()->share('errors', new \Illuminate\Support\ViewErrorBag());
+        
         // Register custom Blade directive for translating status
         Blade::directive('translateStatus', function ($status) {
             return "<?php echo __('app.' . {$status}); ?>";

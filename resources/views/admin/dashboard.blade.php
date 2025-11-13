@@ -37,8 +37,8 @@
         <div class="col-md-3">
             <div class="card text-white bg-warning">
                 <div class="card-body">
-                    <h3>{{ $stats['pending_review'] }}</h3>
-                    <p>{{ __('app.Pending Review') }}</p>
+                    <h3>{{ $stats['pending_keluhan'] }}</h3>
+                    <p>{{ __('app.Pending Keluhan') }}</p>
                 </div>
             </div>
         </div>

@@ -26,7 +26,7 @@ test('user can view their dashboard', function () {
     $response = $this->actingAs($this->user)->get(route('dashboard'));
 
     $response->assertStatus(200)
-        ->assertViewIs('home')
+        ->assertViewIs('dashboard')
         ->assertSee('Dashboard');
 });
 
@@ -65,14 +65,17 @@ test('user can view create ticket form', function () {
 
     $response->assertStatus(200)
         ->assertViewIs('tickets.create')
-        ->assertSee('Create Ticket');
+        ->assertSee('Buat Tiket'); // Indonesian translation
 });
 
 test('user can create a new ticket', function () {
     $ticketData = [
-        'user_name' => 'John Doe',
-        'user_email' => 'john@example.com',
-        'user_phone' => '081234567890',
+        'reporter_nip' => '123456',
+        'reporter_name' => 'John Doe',
+        'reporter_email' => 'john@example.com',
+        'reporter_phone' => '081234567890',
+        'reporter_department' => 'IT Department',
+        'input_method' => 'manual',
         'channel' => 'portal',
         'subject' => 'Test Ticket Subject',
         'description' => 'This is a detailed description of the test ticket',
@@ -96,27 +99,34 @@ test('user can create a new ticket', function () {
 test('user cannot create ticket without required fields', function () {
     $response = $this->actingAs($this->user)->post(route('tickets.store'), []);
 
-    $response->assertSessionHasErrors(['user_name', 'user_email', 'subject', 'description']);
+    $response->assertSessionHasErrors(['reporter_nip', 'reporter_name', 'reporter_department', 'reporter_email', 'subject', 'description', 'input_method', 'channel']);
 });
 
 test('user cannot create ticket with invalid email', function () {
     $ticketData = [
-        'user_name' => 'John Doe',
-        'user_email' => 'invalid-email',
+        'reporter_nip' => '123456',
+        'reporter_name' => 'John Doe',
+        'reporter_email' => 'invalid-email',
+        'reporter_department' => 'IT Department',
+        'input_method' => 'manual',
+        'channel' => 'portal',
         'subject' => 'Test Subject',
-        'description' => 'Test description',
+        'description' => 'Test description for validation',
     ];
 
     $response = $this->actingAs($this->user)->post(route('tickets.store'), $ticketData);
 
-    $response->assertSessionHasErrors('user_email');
+    $response->assertSessionHasErrors('reporter_email');
 });
 
 test('ticket is created with correct default values', function () {
     $ticketData = [
-        'user_name' => 'John Doe',
-        'user_email' => 'john@example.com',
-        'user_phone' => '081234567890',
+        'reporter_nip' => '123456',
+        'reporter_name' => 'John Doe',
+        'reporter_email' => 'john@example.com',
+        'reporter_phone' => '081234567890',
+        'reporter_department' => 'IT Department',
+        'input_method' => 'manual',
         'channel' => 'portal',
         'subject' => 'Test Subject',
         'description' => 'This is a detailed test description',

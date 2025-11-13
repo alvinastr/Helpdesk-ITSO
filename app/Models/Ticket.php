@@ -30,8 +30,11 @@ class Ticket extends Model
         'category',
         'priority',
         'status',
+        'validation_status',
         'rejection_reason',
         'resolution_notes',
+        'revision_notes',
+        'revision_count',
         'assigned_to',
         'approved_by',
         'created_by_admin',
@@ -44,6 +47,10 @@ class Ticket extends Model
         'response_time_minutes',
         'resolution_time_minutes',
         'ticket_creation_delay_minutes',
+        'sla_breached',
+        'sla_deadline',
+        'satisfaction_rating',
+        'satisfaction_comment',
         // Email Content Fields
         'email_subject',
         'email_body_original',
@@ -53,6 +60,10 @@ class Ticket extends Model
         'email_from',
         'email_to',
         'email_cc',
+        'email_message_id',
+        'sender_email',
+        'email_headers',
+        'processing_time_ms',
     ];
     
     protected $casts = [
@@ -61,7 +72,10 @@ class Ticket extends Model
         'email_received_at' => 'datetime',
         'first_response_at' => 'datetime',
         'resolved_at' => 'datetime',
+        'sla_deadline' => 'datetime',
+        'sla_breached' => 'boolean',
         'email_thread' => 'array', // JSON cast
+        'email_headers' => 'array', // JSON cast
     ];
 
     // Relationships

@@ -11,7 +11,8 @@ class TicketStatusHistory extends Model
         'old_status',
         'new_status',
         'changed_by',
-        'notes'
+        'notes',
+        'is_internal'
     ];
 
     public function ticket()

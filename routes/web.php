@@ -29,7 +29,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Tickets
     Route::resource('tickets', TicketController::class);
-    Route::post('tickets/{ticketId}/reply', [TicketController::class, 'reply'])->name('tickets.reply');
+    Route::post('tickets/{ticket}/reply', [TicketController::class, 'reply'])->name('tickets.reply');
 });
 
 // Admin routes
@@ -56,7 +56,11 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/reports/export-excel', [ReportController::class, 'exportExcel'])->name('admin.reports.excel');
     Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('admin.reports.pdf');
     
-    // KPI Dashboard
+    // KPI Dashboard (New comprehensive routes)
+    Route::get('/kpi-dashboard', [App\Http\Controllers\Admin\KpiDashboardController::class, 'index'])->name('admin.kpi-dashboard');
+    Route::get('/kpi-dashboard/live-stats', [App\Http\Controllers\Admin\KpiDashboardController::class, 'liveStats'])->name('admin.kpi-dashboard.live-stats');
+    
+    // KPI Dashboard (Legacy routes - keep for backward compatibility)
     Route::get('/kpi', [App\Http\Controllers\KpiDashboardController::class, 'index'])->name('kpi.dashboard');
     Route::get('/kpi/export', [App\Http\Controllers\KpiDashboardController::class, 'export'])->name('kpi.export');
     

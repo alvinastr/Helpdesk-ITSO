@@ -75,7 +75,7 @@ class TicketFeatureTest extends TestCase
         $response = $this->actingAs($user)
             ->post('/tickets', []);
         
-        $response->assertSessionHasErrors(['subject', 'description']);
+        $response->assertSessionHasErrors(['reporter_nip', 'reporter_name', 'reporter_department', 'reporter_email', 'subject', 'description', 'input_method', 'channel']);
     }
 
     /** @test */
@@ -155,6 +155,8 @@ class TicketFeatureTest extends TestCase
                 'reporter_name' => 'Test User',
                 'reporter_email' => 'test@example.com',
                 'reporter_department' => 'IT Department',
+                'input_method' => 'manual',
+                'channel' => 'portal',
                 'category' => 'general',
                 'priority' => 'medium'
             ]);

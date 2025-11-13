@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\SimpleExcel\SimpleExcelWriter;
 
 class ReportController extends Controller
 {
@@ -20,16 +22,47 @@ class ReportController extends Controller
     {
         $startDate = $request->get('start_date', now()->subDays(30)->format('Y-m-d'));
         $endDate = $request->get('end_date', now()->format('Y-m-d'));
+        $status = $request->get('status');
+        $category = $request->get('category');
+        $priority = $request->get('priority');
+        $channel = $request->get('channel');
 
-        $data = [
-            'total_tickets' => $this->getTotalTickets($startDate, $endDate),
-            'by_status' => $this->getTicketsByStatus($startDate, $endDate),
-            'by_category' => $this->getTicketsByCategory($startDate, $endDate),
-            'by_channel' => $this->getTicketsByChannel($startDate, $endDate),
-            'by_priority' => $this->getTicketsByPriority($startDate, $endDate)
-        ];
+        // Build query for tickets with proper datetime handling
+        $query = Ticket::whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate);
+        
+        if ($status) {
+            $query->where('status', $status);
+        }
+        if ($category) {
+            $query->where('category', $category);
+        }
+        if ($priority) {
+            $query->where('priority', $priority);
+        }
+        if ($channel) {
+            $query->where('channel', $channel);
+        }
 
-        return view('reports.index', compact('data', 'startDate', 'endDate'));
+        $tickets = $query->with(['user', 'assignedUser'])->get();
+        $totalTickets = $tickets->count();
+
+        // Get statistics
+        $ticketsByStatus = $this->getTicketsByStatus($startDate, $endDate);
+        $ticketsByCategory = $this->getTicketsByCategory($startDate, $endDate);
+        $ticketsByChannel = $this->getTicketsByChannel($startDate, $endDate);
+        $ticketsByPriority = $this->getTicketsByPriority($startDate, $endDate);
+
+        return view('admin.reports.index', compact(
+            'tickets',
+            'totalTickets',
+            'ticketsByStatus',
+            'ticketsByCategory',
+            'ticketsByChannel',
+            'ticketsByPriority',
+            'startDate',
+            'endDate'
+        ));
     }
 
     /**
@@ -37,17 +70,49 @@ class ReportController extends Controller
      */
     public function exportExcel(Request $request)
     {
-        $startDate = $request->get('start_date', now()->subDays(30));
-        $endDate = $request->get('end_date', now());
+        $startDate = $request->get('start_date', now()->subDays(30)->format('Y-m-d'));
+        $endDate = $request->get('end_date', now()->format('Y-m-d'));
+        $status = $request->get('status');
+        $category = $request->get('category');
 
-        $tickets = Ticket::whereBetween('created_at', [$startDate, $endDate])
-            ->with(['user', 'assignedUser', 'approvedBy'])
-            ->get();
+        $query = Ticket::whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->with(['user', 'assignedUser']);
 
-        // Use Laravel Excel or PhpSpreadsheet
-        // return Excel::download(new TicketsExport($tickets), 'tickets.xlsx');
-        
-        return response()->json(['message' => 'Export feature - integrate Laravel Excel']);
+        if ($status) {
+            $query->where('status', $status);
+        }
+        if ($category) {
+            $query->where('category', $category);
+        }
+
+        $tickets = $query->get();
+
+        $filename = 'tickets_report_' . now()->format('Y-m-d_His') . '.xlsx';
+        $filePath = storage_path('app/' . $filename);
+
+        $writer = SimpleExcelWriter::create($filePath);
+
+        foreach ($tickets as $ticket) {
+            $writer->addRow([
+                'Ticket Number' => $ticket->ticket_number,
+                'Subject' => $ticket->subject,
+                'Status' => $ticket->status,
+                'Category' => $ticket->category,
+                'Priority' => $ticket->priority,
+                'Channel' => $ticket->channel,
+                'User' => $ticket->user_name,
+                'Assigned To' => $ticket->assignedUser?->name ?? 'N/A',
+                'Created At' => $ticket->created_at->format('Y-m-d H:i:s'),
+                'Updated At' => $ticket->updated_at->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $writer->close();
+
+        return response()->download($filePath, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend();
     }
 
     /**
@@ -55,34 +120,50 @@ class ReportController extends Controller
      */
     public function exportPdf(Request $request)
     {
-        $startDate = $request->get('start_date', now()->subDays(30));
-        $endDate = $request->get('end_date', now());
+        $startDate = $request->get('start_date', now()->subDays(30)->format('Y-m-d'));
+        $endDate = $request->get('end_date', now()->format('Y-m-d'));
+        $status = $request->get('status');
+        $category = $request->get('category');
+
+        $query = Ticket::whereDate('created_at', '>=', $startDate)
+            ->whereDate('created_at', '<=', $endDate)
+            ->with(['user', 'assignedUser']);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+        if ($category) {
+            $query->where('category', $category);
+        }
+
+        $tickets = $query->get();
 
         $data = [
-            'tickets' => Ticket::whereBetween('created_at', [$startDate, $endDate])->get(),
-            'stats' => [
-                'total' => Ticket::whereBetween('created_at', [$startDate, $endDate])->count(),
-                'closed' => Ticket::where('status', 'closed')
-                    ->whereBetween('created_at', [$startDate, $endDate])->count(),
-            ]
+            'tickets' => $tickets,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'totalTickets' => $tickets->count(),
         ];
 
-        // Use DomPDF or similar
-        // $pdf = PDF::loadView('reports.pdf', $data);
-        // return $pdf->download('report.pdf');
+        $pdf = Pdf::loadView('admin.reports.pdf', $data);
         
-        return response()->json(['message' => 'PDF export feature - integrate DomPDF']);
+        $filename = 'tickets_report_' . now()->format('Y-m-d_His') . '.pdf';
+
+        return $pdf->download($filename);
     }
 
     // Helper methods for statistics
     protected function getTotalTickets($start, $end)
     {
-        return Ticket::whereBetween('created_at', [$start, $end])->count();
+        return Ticket::whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
+            ->count();
     }
 
     protected function getTicketsByStatus($start, $end)
     {
-        return Ticket::whereBetween('created_at', [$start, $end])
+        return Ticket::whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -90,7 +171,8 @@ class ReportController extends Controller
 
     protected function getTicketsByCategory($start, $end)
     {
-        return Ticket::whereBetween('created_at', [$start, $end])
+        return Ticket::whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
             ->selectRaw('category, count(*) as count')
             ->groupBy('category')
             ->pluck('count', 'category');
@@ -98,7 +180,8 @@ class ReportController extends Controller
 
     protected function getTicketsByChannel($start, $end)
     {
-        return Ticket::whereBetween('created_at', [$start, $end])
+        return Ticket::whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
             ->selectRaw('channel, count(*) as count')
             ->groupBy('channel')
             ->pluck('count', 'channel');
@@ -106,7 +189,8 @@ class ReportController extends Controller
 
     protected function getTicketsByPriority($start, $end)
     {
-        return Ticket::whereBetween('created_at', [$start, $end])
+        return Ticket::whereDate('created_at', '>=', $start)
+            ->whereDate('created_at', '<=', $end)
             ->selectRaw('priority, count(*) as count')
             ->groupBy('priority')
             ->pluck('count', 'priority');

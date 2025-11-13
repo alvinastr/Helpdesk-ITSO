@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class AdminTicketController extends Controller
@@ -25,7 +26,7 @@ class AdminTicketController extends Controller
      */
     public function pendingTickets()
     {
-        $tickets = Ticket::whereIn('status', ['pending_keluhan', 'pending_review'])
+        $tickets = Ticket::where('status', 'pending_keluhan')
             ->with(['threads', 'statusHistories'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -59,15 +60,16 @@ class AdminTicketController extends Controller
         Log::info("Reject method called for ticket: {$ticket->id}");
         Log::info("Reject ticket found", ['ticket' => $ticket->toArray()]);
         
-        // Reason is now optional - will be auto-filled if empty
+        // Accept both 'reason' and 'rejection_reason' for compatibility
         $request->validate([
-            'reason' => 'nullable|string|max:500'
+            'reason' => 'nullable|string|max:500',
+            'rejection_reason' => 'nullable|string|max:500'
         ]);
 
         try {
             Log::info("About to call rejectTicket service method");
-            // Use default reason if empty
-            $reason = $request->reason ?: 'Ticket ditolak oleh admin';
+            // Use default reason if empty - check both possible field names
+            $reason = $request->rejection_reason ?: $request->reason ?: 'Ticket ditolak oleh admin';
             $result = $this->ticketService->rejectTicket($ticket, $reason, Auth::user());
             Log::info("RejectTicket completed", ['result_status' => $result->status]);
             
@@ -147,11 +149,20 @@ class AdminTicketController extends Controller
     {
         $ticket = Ticket::findOrFail($ticketId);
         
+        // Accept both 'user_id' and 'assigned_to' for compatibility
         $request->validate([
-            'user_id' => 'required|exists:users,id'
+            'user_id' => 'nullable|exists:users,id',
+            'assigned_to' => 'nullable|exists:users,id'
         ]);
 
-        $assignee = User::findOrFail($request->user_id);
+        // Get assignee ID from either field
+        $assigneeId = $request->assigned_to ?: $request->user_id;
+        
+        if (!$assigneeId) {
+            return redirect()->back()->with('error', 'User ID wajib diisi');
+        }
+
+        $assignee = User::findOrFail($assigneeId);
         
         if ($assignee->role !== 'admin') {
             return redirect()->back()->with('error', 'Hanya bisa assign ke admin lain');
@@ -199,20 +210,44 @@ class AdminTicketController extends Controller
     public function dashboard()
     {
         try {
+            // Total tickets count
+            $totalTickets = Ticket::count();
+            
+            // Open tickets count (not closed)
+            $openTickets = Ticket::where('status', '!=', 'closed')->count();
+            
+            // Closed tickets count
+            $closedTickets = Ticket::where('status', 'closed')->count();
+
+            // Statistics array
             $stats = [
-                'pending_review' => Ticket::where('status', 'pending_review')->count(),
+                'pending_keluhan' => Ticket::where('status', 'pending_keluhan')->count(),
                 'open' => Ticket::where('status', 'open')->count(),
                 'resolved' => Ticket::where('status', 'resolved')->count(),
                 'closed_today' => Ticket::where('status', 'closed')
                     ->whereDate('updated_at', today())->count(),
             ];
 
+            // Recent tickets
             $recentTickets = Ticket::with(['threads'])
                 ->orderBy('created_at', 'desc')
                 ->limit(10)
                 ->get();
 
-            return view('admin.dashboard', compact('stats', 'recentTickets'));
+            // Tickets by category
+            $ticketsByCategory = Ticket::select('category', DB::raw('count(*) as count'))
+                ->groupBy('category')
+                ->get()
+                ->pluck('count', 'category');
+
+            return view('admin.dashboard', compact(
+                'stats', 
+                'recentTickets', 
+                'totalTickets', 
+                'openTickets', 
+                'closedTickets',
+                'ticketsByCategory'
+            ));
         } catch (\Exception $e) {
             Log::error('Dashboard error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());

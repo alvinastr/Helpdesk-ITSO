@@ -136,8 +136,8 @@ class TicketService
                 return $ticket;
             }
 
-            // Step 6: Set to pending review
-            $this->updateStatus($ticket, 'pending_review');
+            // Step 6: Set to pending keluhan (waiting for admin validation)
+            $this->updateStatus($ticket, 'pending_keluhan');
 
             // Step 7: Auto-categorize
             $this->autoCategorize($ticket);
@@ -414,18 +414,25 @@ class TicketService
         $reason = $reason ?: 'Ticket ditolak oleh admin';
 
         DB::transaction(function () use ($ticket, $reason, $adminId, $adminName) {
-            // Update status using updateStatus method (this will create status history)
-            $this->updateStatus($ticket, 'rejected', 'Ticket rejected by admin');
-
-            // Update additional fields
+            $oldStatus = $ticket->status;
+            
+            // Update all fields in a single call to avoid conflicts
             $ticket->update([
+                'status' => 'rejected',
                 'rejection_reason' => $reason,
                 'rejected_by' => $adminId,
-                'rejected_at' => now()
+                'rejected_at' => now(),
+                'validation_status' => 'rejected'
             ]);
 
-            // Refresh ticket to ensure we have the latest data
-            $ticket->refresh();
+            // Record status history
+            TicketStatusHistory::create([
+                'ticket_id' => $ticket->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'rejected',
+                'changed_by' => $adminId,
+                'notes' => 'Ticket rejected by admin'
+            ]);
 
             // Add thread message
             $this->addThreadMessage($ticket, [
@@ -439,6 +446,9 @@ class TicketService
             $this->notificationService->sendTicketRejected($ticket);
         });
 
+        // Refresh ticket AFTER transaction to get persisted changes
+        $ticket->refresh();
+
         return $ticket;
     }
 
@@ -451,18 +461,25 @@ class TicketService
         $adminName = $admin ? $admin->name : Auth::user()->name;
 
         DB::transaction(function () use ($ticket, $assignedTo, $adminId, $adminName) {
-            // Update status using updateStatus method (this will create status history)
-            $this->updateStatus($ticket, 'open', 'Ticket approved by admin');
-
-            // Update additional fields
+            $oldStatus = $ticket->status;
+            
+            // Update all fields in a single call
             $ticket->update([
+                'status' => 'open',
                 'approved_by' => $adminId,
                 'approved_at' => now(),
-                'assigned_to' => $assignedTo
+                'assigned_to' => $assignedTo,
+                'validation_status' => 'approved'
             ]);
 
-            // Refresh ticket to ensure we have the latest data
-            $ticket->refresh();
+            // Record status history
+            TicketStatusHistory::create([
+                'ticket_id' => $ticket->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'open',
+                'changed_by' => $adminId,
+                'notes' => 'Ticket approved by admin'
+            ]);
 
             // Then add thread message
             $this->addThreadMessage($ticket, [
@@ -476,6 +493,9 @@ class TicketService
             $this->notificationService->sendTicketApproved($ticket);
         });
 
+        // Refresh ticket AFTER transaction to get persisted changes
+        $ticket->refresh();
+
         return $ticket;
     }
 
@@ -488,8 +508,24 @@ class TicketService
         $adminName = $admin ? $admin->name : Auth::user()->name;
 
         DB::transaction(function () use ($ticket, $message, $adminId, $adminName) {
-            // Update status using updateStatus method (this will create status history)
-            $this->updateStatus($ticket, 'pending_revision', 'Revision requested by admin');
+            $oldStatus = $ticket->status;
+            
+            // Update all fields in a single call
+            $ticket->update([
+                'status' => 'pending_revision',
+                'validation_status' => 'needs_revision',
+                'revision_notes' => $message,
+                'revision_count' => ($ticket->revision_count ?? 0) + 1
+            ]);
+
+            // Record status history
+            TicketStatusHistory::create([
+                'ticket_id' => $ticket->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'pending_revision',
+                'changed_by' => $adminId,
+                'notes' => 'Revision requested by admin'
+            ]);
 
             // Add thread message
             $this->addThreadMessage($ticket, [
@@ -502,6 +538,9 @@ class TicketService
 
             $this->notificationService->sendRevisionRequest($ticket, $message);
         });
+
+        // Refresh ticket AFTER transaction to get persisted changes
+        $ticket->refresh();
 
         return $ticket;
     }
@@ -540,18 +579,24 @@ class TicketService
         $resolutionNotes = $resolutionNotes ?: 'Masalah telah diselesaikan';
 
         DB::transaction(function () use ($ticket, $resolutionNotes, $adminId, $adminName) {
-            // Update status using updateStatus method (this will create status history)
-            $this->updateStatus($ticket, 'closed', 'Ticket closed by admin');
-
-            // Update additional fields
+            $oldStatus = $ticket->status;
+            
+            // Update all fields in a single call
             $ticket->update([
+                'status' => 'closed',
                 'closed_at' => now(),
                 'resolution_notes' => $resolutionNotes,
                 'closed_by' => $adminId
             ]);
 
-            // Refresh ticket to ensure we have the latest data
-            $ticket->refresh();
+            // Record status history
+            TicketStatusHistory::create([
+                'ticket_id' => $ticket->id,
+                'old_status' => $oldStatus,
+                'new_status' => 'closed',
+                'changed_by' => $adminId,
+                'notes' => 'Ticket closed by admin'
+            ]);
 
             // Add thread message
             $this->addThreadMessage($ticket, [
@@ -563,7 +608,15 @@ class TicketService
             ]);
 
             $this->notificationService->sendTicketClosed($ticket);
+            
+            // Update KPI metrics
+            if (isset($this->kpiService)) {
+                $this->kpiService->updateTicketKpiMetrics($ticket);
+            }
         });
+
+        // Refresh ticket AFTER transaction to get persisted changes
+        $ticket->refresh();
 
         return $ticket;
     }
@@ -854,6 +907,9 @@ class TicketService
             'notes' => "Assigned to {$assignee->name}",
             'changed_by' => $admin->id
         ]);
+
+        // Refresh ticket to get persisted changes
+        $ticket->refresh();
 
         return $ticket;
     }

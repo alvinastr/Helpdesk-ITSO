@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="/Users/alvin/Documents/Proj/ITSO/phpunit.xml" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.313759">
+    <testsuite name="Feature" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.313759">
+      <testsuite name="Tests\Feature\AdminDashboardTest" file="tests/Feature/AdminDashboardTest.php" tests="1" assertions="2" errors="0" failures="1" skipped="0" time="0.313759">
+        <testcase name="admin can reject ticket with reason" file="tests/Feature/AdminDashboardTest.php::admin can reject ticket with reason" class="Tests\Feature\AdminDashboardTest" classname="Tests.Feature.AdminDashboardTest" assertions="2" time="0.313759">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">admin can reject ticket with reasonFailed asserting that two strings are identical.
+at tests/Feature/AdminDashboardTest.php:191</failure>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

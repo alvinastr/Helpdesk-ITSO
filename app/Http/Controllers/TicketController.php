@@ -107,10 +107,8 @@ class TicketController extends Controller
     /**
      * Reply to ticket
      */
-    public function reply(Request $request, $ticketId)
+    public function reply(Request $request, Ticket $ticket)
     {
-        $ticket = Ticket::findOrFail($ticketId);
-
         // Authorization check
         if (Auth::user()->role !== 'admin' && $ticket->user_id !== Auth::id()) {
             abort(403, 'Unauthorized access');
@@ -148,6 +146,64 @@ class TicketController extends Controller
         }
 
         return back()->with('success', 'Reply berhasil ditambahkan!');
+    }
+
+    /**
+     * Show the form for editing the ticket
+     */
+    public function edit(Ticket $ticket)
+    {
+        // Check ownership
+        if ($ticket->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Only allow editing if ticket is still pending or open
+        if (!in_array($ticket->status, ['pending_keluhan', 'open'])) {
+            return redirect()->route('tickets.show', $ticket)
+                ->with('error', 'Ticket tidak dapat diedit pada status ini');
+        }
+
+        return view('tickets.edit', compact('ticket'));
+    }
+
+    /**
+     * Update the ticket
+     */
+    public function update(Request $request, Ticket $ticket)
+    {
+        // Check ownership
+        if ($ticket->user_id !== Auth::id()) {
+            abort(403, 'Unauthorized access');
+        }
+
+        // Only allow editing if ticket is still pending or open
+        if (!in_array($ticket->status, ['pending_keluhan', 'open'])) {
+            return redirect()->route('tickets.show', $ticket)
+                ->with('error', 'Ticket tidak dapat diedit pada status ini');
+        }
+
+        $validated = $request->validate([
+            'subject' => 'required|string|max:255',
+            'description' => 'required|string',
+            'category' => 'required|string',
+            'priority' => 'required|in:low,medium,high,critical'
+        ]);
+
+        $ticket->update($validated);
+
+        // Log the update in status history
+        \App\Models\TicketStatusHistory::create([
+            'ticket_id' => $ticket->id,
+            'old_status' => $ticket->status,
+            'new_status' => $ticket->status,
+            'changed_by' => Auth::id(),
+            'notes' => 'Ticket updated by user',
+            'is_internal' => false
+        ]);
+
+        return redirect()->route('tickets.show', $ticket)
+            ->with('success', 'Ticket berhasil diupdate');
     }
 
 }

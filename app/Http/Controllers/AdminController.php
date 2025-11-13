@@ -25,7 +25,7 @@ class AdminController extends Controller
     public function dashboard()
     {
         $stats = [
-            'pending_review' => Ticket::where('status', 'pending_review')->count(),
+            'pending_keluhan' => Ticket::where('status', 'pending_keluhan')->count(),
             'open' => Ticket::whereIn('status', ['open', 'in_progress'])->count(),
             'resolved' => Ticket::where('status', 'resolved')->count(),
             'closed_today' => Ticket::where('status', 'closed')
@@ -45,7 +45,7 @@ class AdminController extends Controller
      */
     public function pendingReview()
     {
-        $tickets = Ticket::where('status', 'pending_review')
+        $tickets = Ticket::where('status', 'pending_keluhan')
             ->with('user')
             ->orderBy('priority', 'desc')
             ->orderBy('created_at', 'asc')

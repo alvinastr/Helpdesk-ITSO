@@ -56,7 +56,7 @@
                         </div>
                     @endif
 
-                    @if ($errors->any())
+                    @if (isset($errors) && $errors->any())
                         <div class="alert alert-danger alert-dismissible fade show" role="alert">
                             <h6 class="mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Terdapat kesalahan:</h6>
                             <ul class="mb-0 ps-3">

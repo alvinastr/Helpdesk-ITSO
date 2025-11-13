@@ -67,14 +67,12 @@ class ApiTest extends TestCase
         $ticketData = [
             'subject' => 'API Created Ticket',
             'description' => 'This ticket was created via API endpoint for testing',
-            'reporter_nip' => '123456789',
-            'reporter_name' => 'API Test User',
-            'reporter_email' => 'apitest@example.com',
-            'reporter_department' => 'IT Department',
+            'user_name' => 'API Test User',
+            'user_email' => 'apitest@example.com',
+            'user_phone' => '081234567890',
             'category' => 'technical',
             'priority' => 'medium',
-            'channel' => 'api',
-            'input_method' => 'api'
+            'channel' => 'web' // API accepts: email, whatsapp, web
         ];
         
         $response = $this->postJson('/api/v1/tickets', $ticketData);
@@ -82,7 +80,7 @@ class ApiTest extends TestCase
         $response->assertStatus(201);
         $this->assertDatabaseHas('tickets', [
             'subject' => 'API Created Ticket',
-            'reporter_email' => 'apitest@example.com'
+            'user_email' => 'apitest@example.com'
         ]);
     }
 

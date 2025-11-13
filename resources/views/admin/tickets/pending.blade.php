@@ -35,9 +35,9 @@
                                         <i class="fas fa-{{ $ticket->channel === 'email' ? 'envelope' : ($ticket->channel === 'whatsapp' ? 'whatsapp' : 'desktop') }}"></i> 
                                         {{ ucfirst($ticket->channel ?? 'portal') }}
                                     </span>
-                                    @if($ticket->status === 'pending_review')
+                                    @if($ticket->status === 'pending_keluhan')
                                         <span class="badge bg-warning">
-                                            <i class="fas fa-clock"></i> {{ __('app.pending_review') }}
+                                            <i class="fas fa-clock"></i> {{ __('app.pending_keluhan') }}
                                         </span>
                                     @endif
                                 </div>

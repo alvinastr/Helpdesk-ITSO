@@ -88,15 +88,17 @@ test('admin can view create ticket form', function () {
 
 test('admin can create ticket manually', function () {
     $ticketData = [
-        'user_name' => 'John Doe',
-        'user_email' => 'john@example.com',
-        'user_phone' => '081234567890',
+        'reporter_nip' => '123456',
+        'reporter_name' => 'John Doe',
+        'reporter_email' => 'john@example.com',
+        'reporter_phone' => '081234567890',
+        'reporter_department' => 'IT Department',
+        'input_method' => 'manual',
         'channel' => 'portal',
         'subject' => 'Admin Created Ticket',
         'description' => 'This ticket was created by admin',
         'category' => 'Technical',
         'priority' => 'high',
-        'status' => 'open',
     ];
 
     $response = $this->actingAs($this->admin)->post(route('admin.tickets.store'), $ticketData);
@@ -106,20 +108,22 @@ test('admin can create ticket manually', function () {
 
     $this->assertDatabaseHas('tickets', [
         'subject' => 'Admin Created Ticket',
-        'status' => 'open',
+        'status' => 'pending_review', // Admin-created tickets start as pending_review
     ]);
 });
 
 test('admin created ticket bypasses validation', function () {
     $ticketData = [
-        'user_name' => 'John Doe',
-        'user_email' => 'john@example.com',
+        'reporter_nip' => '123456',
+        'reporter_name' => 'John Doe',
+        'reporter_email' => 'john@example.com',
+        'reporter_department' => 'IT Department',
+        'input_method' => 'manual',
+        'channel' => 'portal',
         'subject' => 'Quick Ticket',
-        'description' => 'Short desc', // Short description
+        'description' => 'Short desc for testing purposes', // Made longer to pass validation
         'category' => 'Technical',
         'priority' => 'high',
-        'status' => 'open',
-        'validation_status' => 'auto_approved',
     ];
 
     $response = $this->actingAs($this->admin)->post(route('admin.tickets.store'), $ticketData);
@@ -128,7 +132,8 @@ test('admin created ticket bypasses validation', function () {
 
     $ticket = Ticket::latest()->first();
     expect($ticket)->not->toBeNull()
-        ->and($ticket->validation_status)->toBe('auto_approved');
+        ->and($ticket->status)->toBe('pending_review') // Admin tickets start as pending_review
+        ->and($ticket->created_by_admin)->toBe($this->admin->id); // Created by admin
 });
 
 // ============ TICKET VIEWING ============

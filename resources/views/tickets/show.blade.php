@@ -1,6 +1,15 @@
 @extends('layouts.app-production')
 
 @section('content')
+@if(!$ticket || !$ticket->id)
+<div class="container">
+    <div class="alert alert-danger">
+        <h4>Error: Ticket Not Found</h4>
+        <p>The ticket you're trying to view does not exist or has not been saved to the database yet.</p>
+        <a href="{{ route('dashboard') }}" class="btn btn-primary">Return to Dashboard</a>
+    </div>
+</div>
+@else
 <div class="container">
     <div class="row">
         <div class="col-md-8">
@@ -383,13 +392,13 @@
             </div>
 
             <!-- Reply Form -->
-            @if(!in_array($ticket->status, ['closed', 'rejected']))
+            @if(!in_array($ticket->status, ['closed', 'rejected']) && $ticket->id)
             <div class="card">
                 <div class="card-header">
                     <h5>Add Reply</h5>
                 </div>
                 <div class="card-body">
-                    <form action="{{ route('tickets.reply', $ticket) }}" method="POST" enctype="multipart/form-data">
+                    <form action="{{ route('tickets.reply', ['ticket' => $ticket->id]) }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="form-group mb-3">
                             <textarea class="form-control @error('message') is-invalid @enderror" 
@@ -681,4 +690,5 @@
 }
 </style>
 @endpush
+@endif
 @endsection

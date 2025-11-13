@@ -230,19 +230,32 @@ class EmailMonitorController extends Controller
         $period = $request->get('period', 'today');
         $dateRange = $this->getDateRange($period);
 
-        $stats = [
-            'auto_created' => $this->getAutoCreatedCount($dateRange),
-            'manual_created' => $this->getManualCreatedCount($dateRange),
-            'total' => $this->getTotalTickets($dateRange),
-            'auto_percentage' => 0,
-            'last_fetch' => $this->getLastFetchTime(),
-        ];
+        // Count total tickets created via email auto-fetch
+        $totalFetched = Ticket::where('input_method', 'email_auto_fetch')
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->count();
 
-        if ($stats['total'] > 0) {
-            $stats['auto_percentage'] = round(($stats['auto_created'] / $stats['total']) * 100, 1);
-        }
+        // Count successful email-fetched tickets (approved or auto-approved)
+        $successful = Ticket::where('input_method', 'email_auto_fetch')
+            ->whereIn('validation_status', ['approved', 'auto_approved'])
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->count();
 
-        return response()->json($stats);
+        // Count failed email-fetched tickets (rejected or needs revision)
+        $failed = Ticket::where('input_method', 'email_auto_fetch')
+            ->whereIn('validation_status', ['rejected', 'needs_revision'])
+            ->whereBetween('created_at', [$dateRange['start'], $dateRange['end']])
+            ->count();
+
+        // Get last fetch time
+        $lastFetchTime = $this->getLastFetchTime();
+
+        return response()->json([
+            'total_fetched' => $totalFetched,
+            'successful' => $successful,
+            'failed' => $failed,
+            'last_fetch_time' => $lastFetchTime,
+        ]);
     }
 
     /**
