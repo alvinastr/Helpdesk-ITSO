@@ -1,0 +1,178 @@
+# ========================================
+# Windows Firewall Configuration Guide
+# Helpdesk ITSO
+# ========================================
+
+## Cara 1: Allow Program di Firewall (RECOMMENDED)
+
+### Via GUI:
+
+1. Tekan Windows Key + R
+2. Ketik: firewall.cpl
+3. Tekan Enter
+4. Klik "Allow an app or feature through Windows Defender Firewall"
+5. Klik "Change settings" (butuh admin)
+6. Klik "Allow another app..."
+7. Browse dan pilih salah satu:
+   - C:\xampp\php\php.exe (jika pakai php artisan serve)
+   - C:\xampp\apache\bin\httpd.exe (jika pakai Apache)
+8. Klik "Add"
+9. Centang "Private" dan "Public"
+10. Klik "OK"
+
+### Via PowerShell (Jalankan as Administrator):
+
+# Allow PHP
+New-NetFirewallRule -DisplayName "Helpdesk PHP" -Direction Inbound -Program "C:\xampp\php\php.exe" -Action Allow
+
+# Allow Apache
+New-NetFirewallRule -DisplayName "Helpdesk Apache" -Direction Inbound -Program "C:\xampp\apache\bin\httpd.exe" -Action Allow
+
+## Cara 2: Open Port Spesifik
+
+### Via GUI:
+
+1. Tekan Windows Key + R
+2. Ketik: wf.msc
+3. Tekan Enter
+4. Klik "Inbound Rules"
+5. Klik "New Rule..." di panel kanan
+6. Pilih "Port" > Next
+7. Pilih "TCP"
+8. Specific local ports: 8000 (atau 80 jika pakai Apache)
+9. Next
+10. Pilih "Allow the connection" > Next
+11. Centang Domain, Private, Public > Next
+12. Name: "Helpdesk ITSO Port" > Finish
+
+### Via PowerShell (Jalankan as Administrator):
+
+# Port 8000 (untuk php artisan serve)
+New-NetFirewallRule -DisplayName "Helpdesk Port 8000" -Direction Inbound -Protocol TCP -LocalPort 8000 -Action Allow
+
+# Port 80 (untuk Apache)
+New-NetFirewallRule -DisplayName "Helpdesk Port 80" -Direction Inbound -Protocol TCP -LocalPort 80 -Action Allow
+
+## Cara 3: Disable Firewall (NOT RECOMMENDED untuk production)
+
+### Via GUI:
+
+1. Tekan Windows Key + R
+2. Ketik: firewall.cpl
+3. Tekan Enter
+4. Klik "Turn Windows Defender Firewall on or off"
+5. Pilih "Turn off Windows Defender Firewall" untuk Private dan Public
+6. Klik "OK"
+
+⚠️ WARNING: Hanya untuk testing, jangan untuk production!
+
+## Testing Firewall
+
+### Test dari PC yang sama:
+
+1. Buka Command Prompt
+2. Ketik: netstat -an | findstr :8000
+3. Harus ada line dengan "LISTENING"
+
+### Test dari PC lain:
+
+1. Dari PC lain, buka Command Prompt
+2. Ketik: telnet IP_PC_SERVER 8000
+3. Jika connect berarti firewall OK
+4. Jika gagal, check firewall lagi
+
+Contoh:
+telnet 192.168.1.100 8000
+
+## Allow Network Discovery (Optional)
+
+Agar PC terlihat di network:
+
+### Via GUI:
+
+1. Control Panel > Network and Sharing Center
+2. Change advanced sharing settings
+3. Turn on network discovery
+4. Turn on file and printer sharing
+5. Save changes
+
+### Via PowerShell:
+
+# Enable Network Discovery
+netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes
+
+# Enable File Sharing
+netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes
+
+## Check Firewall Rules
+
+### Via PowerShell:
+
+# List semua rules untuk port 8000
+Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*8000*"} | Select-Object DisplayName, Enabled, Direction, Action
+
+# List semua rules untuk PHP
+Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*php*"} | Select-Object DisplayName, Enabled, Direction, Action
+
+## Remove Firewall Rule (jika perlu)
+
+### Via GUI:
+
+1. Buka wf.msc
+2. Klik "Inbound Rules"
+3. Find rule yang ingin dihapus
+4. Klik kanan > Delete
+
+### Via PowerShell:
+
+Remove-NetFirewallRule -DisplayName "Helpdesk Port 8000"
+
+## Troubleshooting
+
+### Problem: Masih tidak bisa akses dari PC lain
+
+1. Pastikan PC server dan PC client di network yang sama
+2. Ping dari PC client ke PC server:
+   ping 192.168.1.100
+3. Check apakah server running:
+   netstat -an | findstr :8000
+4. Temporarily disable firewall untuk test
+5. Check Windows Defender atau antivirus lain
+
+### Problem: Firewall rules tidak muncul
+
+1. Restart Windows Firewall service:
+   net stop mpssvc
+   net start mpssvc
+2. Atau restart PC
+
+### Problem: Access denied saat add rule
+
+1. Pastikan run PowerShell/CMD as Administrator
+2. Klik kanan > Run as administrator
+
+## Security Best Practices
+
+1. ✅ Allow only specific ports (8000, 80)
+2. ✅ Allow only specific programs (php.exe, httpd.exe)
+3. ✅ Allow only Private network (tidak Public) jika hanya untuk intranet
+4. ❌ Jangan disable firewall completely
+5. ✅ Review firewall rules secara berkala
+6. ✅ Remove unused rules
+
+## Quick Commands
+
+# Check if port is listening
+netstat -an | findstr :8000
+
+# Check firewall status
+netsh advfirewall show allprofiles
+
+# List all inbound rules
+netsh advfirewall firewall show rule name=all dir=in
+
+# Enable firewall
+netsh advfirewall set allprofiles state on
+
+# Disable firewall (temporary testing only)
+netsh advfirewall set allprofiles state off

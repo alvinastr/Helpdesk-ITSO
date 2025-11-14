@@ -1,0 +1,87 @@
+# ========================================
+# Apache Virtual Host Configuration
+# Helpdesk ITSO - Windows Deployment
+# ========================================
+
+# Tambahkan konfigurasi ini ke file:
+# C:\xampp\apache\conf\extra\httpd-vhosts.conf
+
+# Setelah itu restart Apache di XAMPP Control Panel
+
+# ========================================
+# Option 1: Akses via domain lokal (helpdesk.local)
+# ========================================
+# Tambahkan juga di C:\Windows\System32\drivers\etc\hosts:
+# 127.0.0.1 helpdesk.local
+
+<VirtualHost *:80>
+    ServerName helpdesk.local
+    DocumentRoot "C:/xampp/htdocs/helpdesk-itso/public"
+    
+    <Directory "C:/xampp/htdocs/helpdesk-itso/public">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    # Error & Access Logs
+    ErrorLog "logs/helpdesk-error.log"
+    CustomLog "logs/helpdesk-access.log" common
+    
+    # PHP Settings (Optional)
+    <FilesMatch \.php$>
+        SetHandler application/x-httpd-php
+    </FilesMatch>
+    
+    # Security Headers
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+</VirtualHost>
+
+# ========================================
+# Option 2: Akses via port khusus (8080)
+# ========================================
+# Jika port 80 sudah dipakai, gunakan port lain
+
+# Listen 8080
+
+<VirtualHost *:8080>
+    ServerName localhost
+    DocumentRoot "C:/xampp/htdocs/helpdesk-itso/public"
+    
+    <Directory "C:/xampp/htdocs/helpdesk-itso/public">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog "logs/helpdesk-error.log"
+    CustomLog "logs/helpdesk-access.log" common
+</VirtualHost>
+
+# ========================================
+# Option 3: Akses via IP (untuk network)
+# ========================================
+# Ganti 192.168.1.100 dengan IP PC Anda
+
+<VirtualHost 192.168.1.100:80>
+    ServerName 192.168.1.100
+    DocumentRoot "C:/xampp/htdocs/helpdesk-itso/public"
+    
+    <Directory "C:/xampp/htdocs/helpdesk-itso/public">
+        Options Indexes FollowSymLinks MultiViews
+        AllowOverride All
+        Require all granted
+    </Directory>
+    
+    ErrorLog "logs/helpdesk-error.log"
+    CustomLog "logs/helpdesk-access.log" common
+</VirtualHost>
+
+# ========================================
+# Untuk Laragon
+# ========================================
+# Laragon otomatis membuat virtual host
+# Akses: http://helpdesk-itso.test
+# Tidak perlu konfigurasi manual!

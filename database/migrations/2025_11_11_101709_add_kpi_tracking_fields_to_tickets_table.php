@@ -33,7 +33,7 @@ return new class extends Migration
             
             // Customer Satisfaction (New fields)
             if (!Schema::hasColumn('tickets', 'satisfaction_rating')) {
-                $table->integer('satisfaction_rating')->nullable()->after('rating')->comment('1-5 scale');
+                $table->integer('satisfaction_rating')->nullable()->after('sla_deadline')->comment('1-5 scale');
             }
             if (!Schema::hasColumn('tickets', 'satisfaction_comment')) {
                 $table->text('satisfaction_comment')->nullable()->after('satisfaction_rating');

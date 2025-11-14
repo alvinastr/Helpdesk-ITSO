@@ -99,6 +99,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Offline Mode / Local Network
+    |--------------------------------------------------------------------------
+    |
+    | When true, application will use locally hosted assets instead of CDN.
+    | Enable this for local network deployment without internet access.
+    |
+    */
+
+    'offline_mode' => env('OFFLINE_MODE', false),
+    'use_local_assets' => env('USE_LOCAL_ASSETS', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------
     |
