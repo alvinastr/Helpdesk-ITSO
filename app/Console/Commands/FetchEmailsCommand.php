@@ -12,14 +12,16 @@ class FetchEmailsCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'emails:fetch {--limit=50 : Maximum emails to process}';
+    protected $signature = 'emails:fetch 
+                            {--limit=50 : Maximum emails to process}
+                            {--all : Fetch all emails including already read ones}';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Fetch emails from IMAP mailbox and create tickets automatically';
+    protected $description = 'Fetch emails from IMAP mailbox and create tickets automatically. Use --all to include read emails.';
 
     protected $emailFetcher;
 
@@ -41,12 +43,17 @@ class FetchEmailsCommand extends Command
      */
     public function handle()
     {
+        $includeAll = $this->option('all');
+        
         $this->info('🔄 Starting email fetch process...');
+        if ($includeAll) {
+            $this->warn('⚠️  Fetching ALL emails (including read ones)');
+        }
         $this->info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         try {
             // Fetch and process emails
-            $results = $this->emailFetcher->fetchAndProcessEmails();
+            $results = $this->emailFetcher->fetchAndProcessEmails($includeAll);
 
             // Display results
             $this->info("\n📊 Fetch Results:");

@@ -144,13 +144,23 @@ return [
         'allowed_sender_domains' => array_filter(explode(',', env('IMAP_ALLOWED_DOMAINS', ''))),
         // Example: ['bankmega.com', 'gmail.com']
 
+        // Blacklist sender emails (exact match)
+        // Email dari sender ini akan di-skip
+        'blacklist_sender_emails' => array_filter(explode(',', env('IMAP_BLACKLIST_SENDERS', ''))),
+        // Example: ['application.monitor@bankmega.com', 'noreply@example.com']
+
         // Filter by recipient
         // Email harus dikirim ke salah satu recipient ini (TO atau CC)
         // Leave empty [] untuk allow all
         'valid_recipients' => array_filter(explode(',', env('IMAP_VALID_RECIPIENTS', ''))),
-        // Example: ['it.infrastructure@bankmega.com', 'support@bankmega.com']
+        // Example: ['itso@bankmega.com', 'it.infrastructure@bankmega.com']
 
-        // Filter by subject keywords
+        // Blacklist subject keywords (case-insensitive)
+        // Email dengan subject mengandung keyword ini akan di-skip
+        'blacklist_subject_keywords' => array_filter(explode(',', env('IMAP_BLACKLIST_SUBJECTS', ''))),
+        // Example: ['confidential', 'out of office', 'automatic reply']
+
+        // Filter by subject keywords (whitelist)
         // Subject harus mengandung minimal salah satu keyword ini
         // Leave empty [] untuk allow all subjects
         'required_subject_keywords' => array_filter(explode(',', env('IMAP_REQUIRED_KEYWORDS', ''))),

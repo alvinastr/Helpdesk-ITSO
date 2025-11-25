@@ -240,18 +240,56 @@ class AdminTicketController extends Controller
                 ->get()
                 ->pluck('count', 'category');
 
+            // Email fetch statistics
+            $emailStats = $this->getEmailFetchStats();
+
             return view('admin.dashboard', compact(
                 'stats', 
                 'recentTickets', 
                 'totalTickets', 
                 'openTickets', 
                 'closedTickets',
-                'ticketsByCategory'
+                'ticketsByCategory',
+                'emailStats'
             ));
         } catch (\Exception $e) {
             Log::error('Dashboard error: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get email fetch statistics
+     */
+    private function getEmailFetchStats()
+    {
+        $lastFetch = \App\Models\EmailFetchLog::latest('fetch_started_at')->first();
+        
+        $todayStats = \App\Models\EmailFetchLog::whereDate('fetch_started_at', today())
+            ->selectRaw('
+                SUM(successful) as total_success,
+                SUM(failed) as total_failed,
+                SUM(duplicates) as total_duplicates,
+                SUM(total_fetched) as total_fetched,
+                COUNT(*) as fetch_count
+            ')
+            ->first();
+
+        $last7Days = \App\Models\EmailFetchLog::where('fetch_started_at', '>=', now()->subDays(7))
+            ->where('status', 'completed')
+            ->selectRaw('DATE(fetch_started_at) as date, SUM(successful) as count')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get();
+
+        return [
+            'last_fetch' => $lastFetch,
+            'today' => $todayStats,
+            'last_7_days' => $last7Days,
+            'last_fetch_success_rate' => $lastFetch && $lastFetch->total_fetched > 0 
+                ? round(($lastFetch->successful / $lastFetch->total_fetched) * 100, 1) 
+                : 0,
+        ];
     }
 }

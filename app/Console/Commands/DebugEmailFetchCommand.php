@@ -121,7 +121,21 @@ class DebugEmailFetchCommand extends Command
                     $subject = isset($header->subject) ? $this->decodeEmailText($header->subject) : '(No Subject)';
                     $messageId = isset($header->message_id) ? $header->message_id : "email-{$emailId}-" . time();
 
+                    // Get TO and CC
+                    $to = isset($header->to[0]) ? $header->to[0]->mailbox . '@' . $header->to[0]->host : '';
+                    $cc = '';
+                    if (isset($header->cc)) {
+                        $ccAddresses = array_map(function($c) {
+                            return $c->mailbox . '@' . $c->host;
+                        }, $header->cc);
+                        $cc = implode(', ', $ccAddresses);
+                    }
+
                     $this->line("From: {$fromName} <{$fromEmail}>");
+                    $this->line("To: {$to}");
+                    if (!empty($cc)) {
+                        $this->line("Cc: {$cc}");
+                    }
                     $this->line("Subject: {$subject}");
                     $this->line("Message ID: {$messageId}");
                     $this->line("Body length: " . strlen($body) . " chars");
@@ -129,6 +143,8 @@ class DebugEmailFetchCommand extends Command
                     // Check filters
                     $emailData = [
                         'from' => $fromEmail,
+                        'to' => $to,
+                        'cc' => $cc,
                         'subject' => $subject,
                         'body' => $body,
                         'message_id' => $messageId,
@@ -239,12 +255,52 @@ class DebugEmailFetchCommand extends Command
 
     protected function checkFilters($emailData): array
     {
+        // Check blacklist sender (PRIORITY)
+        $blacklistSenders = config('mail.imap.blacklist_sender_emails', []);
+        if (!empty($blacklistSenders)) {
+            $email = strtolower($emailData['from']);
+            $blacklistSenders = array_map('strtolower', $blacklistSenders);
+            if (in_array($email, $blacklistSenders)) {
+                return ['passed' => false, 'reason' => "Sender '{$emailData['from']}' is blacklisted"];
+            }
+        }
+
+        // Check blacklist subject (PRIORITY)
+        $blacklistKeywords = config('mail.imap.blacklist_subject_keywords', []);
+        if (!empty($blacklistKeywords)) {
+            $subject = strtolower($emailData['subject']);
+            foreach ($blacklistKeywords as $keyword) {
+                if (stripos($subject, strtolower($keyword)) !== false) {
+                    return ['passed' => false, 'reason' => "Subject contains blacklisted keyword: '{$keyword}'"];
+                }
+            }
+        }
+
         // Check sender domain
         $allowedDomains = config('mail.imap.allowed_sender_domains', []);
         if (!empty($allowedDomains)) {
             $domain = substr(strrchr($emailData['from'], '@'), 1);
             if (!in_array($domain, $allowedDomains)) {
                 return ['passed' => false, 'reason' => "Sender domain '{$domain}' not in allowed list"];
+            }
+        }
+
+        // Check valid recipients
+        $validRecipients = config('mail.imap.valid_recipients', []);
+        if (!empty($validRecipients)) {
+            $to = isset($emailData['to']) ? strtolower($emailData['to']) : '';
+            $cc = isset($emailData['cc']) ? strtolower($emailData['cc']) : '';
+            $allRecipients = $to . ',' . $cc;
+            
+            $found = false;
+            foreach ($validRecipients as $validRecipient) {
+                if (stripos($allRecipients, strtolower($validRecipient)) !== false) {
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                return ['passed' => false, 'reason' => "Not sent to valid recipients"];
             }
         }
 

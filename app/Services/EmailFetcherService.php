@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Ticket;
+use App\Models\EmailFetchLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -10,6 +11,7 @@ class EmailFetcherService
 {
     protected $emailParser;
     protected $ticketService;
+    protected $fetchLog;
     
     public function __construct(EmailParserService $emailParser, TicketService $ticketService)
     {
@@ -20,17 +22,24 @@ class EmailFetcherService
     /**
      * Fetch emails dari IMAP mailbox dan create tickets otomatis
      */
-    public function fetchAndProcessEmails(): array
+    public function fetchAndProcessEmails($includeRead = false): array
     {
+        // Create fetch log entry
+        $this->fetchLog = EmailFetchLog::create([
+            'fetch_started_at' => now(),
+            'status' => 'running',
+        ]);
+
         $results = [
             'success' => 0,
             'failed' => 0,
             'skipped' => 0,
+            'filtered' => 0,
             'errors' => [],
         ];
 
         try {
-            Log::info('=== Starting Email Fetch Process ===');
+            Log::info('=== Starting Email Fetch Process ===', ['log_id' => $this->fetchLog->id]);
             Log::info('IMAP Config', [
                 'host' => config('mail.imap.host'),
                 'port' => config('mail.imap.port'),
@@ -45,10 +54,10 @@ class EmailFetcherService
 
             Log::info('Connected to mailbox successfully');
 
-            // Get unread emails
-            $emails = $this->getUnreadEmails($mailbox);
+            // Get emails (unread atau semua)
+            $emails = $includeRead ? $this->getAllEmails($mailbox) : $this->getUnreadEmails($mailbox);
 
-            Log::info('Found unread emails', ['count' => count($emails)]);
+            Log::info('Found emails', ['count' => count($emails), 'include_read' => $includeRead]);
 
             foreach ($emails as $emailId => $emailData) {
                 try {
@@ -59,20 +68,34 @@ class EmailFetcherService
                         continue;
                     }
 
-                    // Create ticket from email
-                    $ticket = $this->createTicketFromEmail($emailData);
-
-                    if ($ticket) {
-                        // Mark email as read
-                        $this->markEmailAsRead($mailbox, $emailId);
-
-                        Log::info('Created ticket from email', ['ticket_number' => $ticket->ticket_number, 'message_id' => $emailData['message_id']]);
+                    // Check if this is a reply to existing ticket
+                    $existingTicket = $this->findRelatedTicket($emailData);
+                    
+                    if ($existingTicket) {
+                        // Add comment to existing ticket
+                        $this->addCommentToTicket($existingTicket, $emailData);
+                        Log::info('Added comment to existing ticket', [
+                            'ticket_number' => $existingTicket->ticket_number,
+                            'from' => $emailData['from'],
+                            'subject' => $emailData['subject']
+                        ]);
                         $results['success']++;
                     } else {
-                        $errorMsg = "Failed to create ticket from: {$emailData['subject']}";
-                        $results['failed']++;
-                        $results['errors'][] = $errorMsg;
-                        Log::error($errorMsg);
+                        // Create new ticket from email
+                        $ticket = $this->createTicketFromEmail($emailData);
+
+                        if ($ticket) {
+                            // Mark email as read
+                            $this->markEmailAsRead($mailbox, $emailId);
+
+                            Log::info('Created ticket from email', ['ticket_number' => $ticket->ticket_number, 'message_id' => $emailData['message_id']]);
+                            $results['success']++;
+                        } else {
+                            $errorMsg = "Failed to create ticket from: {$emailData['subject']}";
+                            $results['failed']++;
+                            $results['errors'][] = $errorMsg;
+                            Log::error($errorMsg);
+                        }
                     }
                 } catch (\Exception $e) {
                     $errorMsg = "Error processing '{$emailData['subject']}': " . $e->getMessage();
@@ -84,9 +107,30 @@ class EmailFetcherService
 
             // Close connection
             $this->closeMailbox($mailbox);
+
+            // Update fetch log with success
+            $this->fetchLog->update([
+                'fetch_completed_at' => now(),
+                'total_fetched' => count($emails),
+                'successful' => $results['success'],
+                'failed' => $results['failed'],
+                'duplicates' => $results['skipped'],
+                'status' => 'completed',
+                'error_message' => !empty($results['errors']) ? implode("\n", $results['errors']) : null,
+            ]);
+
         } catch (\Exception $e) {
             Log::error('Email fetch error', ['error' => $e->getMessage()]);
             $results['errors'][] = $e->getMessage();
+
+            // Update fetch log with error
+            if ($this->fetchLog) {
+                $this->fetchLog->update([
+                    'fetch_completed_at' => now(),
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                ]);
+            }
         }
 
         return $results;
@@ -367,8 +411,8 @@ class EmailFetcherService
             }
         }
 
-        // Clean up body
-        $body = trim($body);
+        // Clean and normalize body
+        $body = $this->cleanEmailBody($body);
         
         // Fallback: jika body masih kosong, ambil subject sebagai body
         if (empty($body)) {
@@ -378,6 +422,36 @@ class EmailFetcherService
             Log::warning("Email {$emailId} has no body content, using subject as fallback");
         }
 
+        return $body;
+    }
+
+    /**
+     * Clean and normalize email body text
+     */
+    protected function cleanEmailBody($body): string
+    {
+        // Decode quoted-printable if still encoded
+        if (strpos($body, '=') !== false) {
+            $body = quoted_printable_decode($body);
+        }
+        
+        // Convert HTML entities
+        $body = html_entity_decode($body, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        
+        // Remove soft line breaks (=\n)
+        $body = str_replace("=\n", '', $body);
+        $body = str_replace("=\r\n", '', $body);
+        
+        // Normalize line breaks
+        $body = str_replace("\r\n", "\n", $body);
+        $body = str_replace("\r", "\n", $body);
+        
+        // Remove multiple consecutive line breaks (max 2)
+        $body = preg_replace("/\n{3,}/", "\n\n", $body);
+        
+        // Trim whitespace
+        $body = trim($body);
+        
         return $body;
     }
 
@@ -411,6 +485,22 @@ class EmailFetcherService
                 } elseif ($part->encoding == 1) {
                     $partBody = imap_8bit($partBody);
                 }
+            }
+            
+            // Handle charset conversion
+            $charset = 'UTF-8';
+            if (isset($part->parameters)) {
+                foreach ($part->parameters as $param) {
+                    if (strtolower($param->attribute) == 'charset') {
+                        $charset = $param->value;
+                        break;
+                    }
+                }
+            }
+            
+            // Convert to UTF-8 if needed
+            if (strtoupper($charset) != 'UTF-8') {
+                $partBody = @iconv($charset, 'UTF-8//IGNORE', $partBody);
             }
             
             // Collect plain text or HTML
@@ -450,6 +540,133 @@ class EmailFetcherService
     /**
      * Create ticket from email data
      */
+    /**
+     * Find related ticket from email subject or reference
+     */
+    protected function findRelatedTicket(array $emailData): ?Ticket
+    {
+        $subject = $emailData['subject'];
+        
+        // Remove common email prefixes and status markers
+        $cleanedSubject = $subject;
+        
+        // Remove Re:, Fwd:, etc
+        $cleanedSubject = preg_replace('/^(Re|RE|Fwd|FW|Fw):\s*/i', '', $cleanedSubject);
+        
+        // Remove status markers like [Resolved], [In Progress], [Closed], etc
+        $cleanedSubject = preg_replace('/^\[.*?\]\s*/i', '', $cleanedSubject);
+        
+        $cleanedSubject = trim($cleanedSubject);
+        
+        // If no cleaning happened, this is not a reply/follow-up
+        if ($cleanedSubject === $subject) {
+            return null;
+        }
+        
+        Log::info("Looking for related ticket", [
+            'original_subject' => $subject,
+            'cleaned_subject' => $cleanedSubject
+        ]);
+        
+        // Try multiple strategies to find related ticket
+        $ticket = null;
+        
+        // Strategy 1: Exact match on cleaned subject
+        $ticket = Ticket::where('subject', $cleanedSubject)
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        // Strategy 2: Match with status markers removed from both sides
+        if (!$ticket) {
+            $ticket = Ticket::where(function($query) use ($cleanedSubject) {
+                $query->where('subject', 'LIKE', '%' . $cleanedSubject . '%')
+                      ->orWhereRaw('REPLACE(REPLACE(subject, "[Resolved] ", ""), "[In Progress] ", "") LIKE ?', ['%' . $cleanedSubject . '%']);
+            })
+            ->orderBy('created_at', 'desc')
+            ->first();
+        }
+        
+        // Strategy 3: Remove common ID patterns and try fuzzy match
+        if (!$ticket) {
+            // Remove patterns like "ICON#72Wc3A" or "(SID 01000011202)"
+            $coreSubject = preg_replace('/\s*\(.*?\)\s*|\s*ICON#\w+\s*/', '', $cleanedSubject);
+            $coreSubject = trim($coreSubject);
+            
+            if (strlen($coreSubject) > 10) { // Only if we have meaningful text left
+                $ticket = Ticket::where(function($query) use ($coreSubject) {
+                    $query->where('subject', 'LIKE', '%' . $coreSubject . '%')
+                          ->orWhereRaw('REPLACE(REPLACE(subject, "[Resolved] ", ""), "[In Progress] ", "") LIKE ?', ['%' . $coreSubject . '%']);
+                })
+                ->orderBy('created_at', 'desc')
+                ->first();
+            }
+        }
+            
+        if ($ticket) {
+            Log::info("Found related ticket for reply", [
+                'cleaned_subject' => $cleanedSubject,
+                'ticket_number' => $ticket->ticket_number,
+                'ticket_subject' => $ticket->subject
+            ]);
+        } else {
+            Log::info("No related ticket found", [
+                'cleaned_subject' => $cleanedSubject
+            ]);
+        }
+        
+        return $ticket;
+    }
+
+    /**
+     * Add comment/update to existing ticket
+     */
+    protected function addCommentToTicket(Ticket $ticket, array $emailData): void
+    {
+        try {
+            // Get existing email thread or initialize
+            $emailThread = $ticket->email_thread ?? array();
+            
+            // Determine reply type based on sender
+            $replyType = 'user_reply';
+            if (stripos($emailData['from'], 'it.support') !== false || 
+                stripos($emailData['from'], 'itsupport') !== false) {
+                $replyType = 'admin_reply';
+            }
+            
+            // Add new email to thread
+            $newThread = array(
+                'type' => $replyType,
+                'timestamp' => $emailData['date']->toIso8601String(),
+                'from' => $emailData['from'],
+                'from_name' => $emailData['from_name'],
+                'to' => $emailData['to'],
+                'cc' => $emailData['cc'],
+                'subject' => $emailData['subject'],
+                'body' => $emailData['body'],
+                'sender_name' => $emailData['from_name'],
+                'index' => count($emailThread) + 1
+            );
+            
+            $emailThread[] = $newThread;
+            
+            // Save updated thread
+            $ticket->email_thread = $emailThread;
+            $ticket->save();
+            
+            Log::info("Added reply to ticket email_thread", [
+                'ticket_number' => $ticket->ticket_number,
+                'reply_type' => $replyType,
+                'thread_count' => count($emailThread)
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error("Failed to add reply to ticket: " . $e->getMessage(), [
+                'ticket_number' => $ticket->ticket_number,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
     protected function createTicketFromEmail(array $emailData): ?Ticket
     {
         try {
@@ -565,35 +782,136 @@ class EmailFetcherService
     }
 
     /**
+     * Get ALL emails (including read) - untuk test ulang
+     */
+    protected function getAllEmails($mailbox): array
+    {
+        $emails = [];
+
+        // Search untuk SEMUA email (tidak pakai UNSEEN)
+        $searchCriteria = 'ALL';
+        
+        // Optional: filter by date
+        $daysBack = config('mail.imap.fetch_days_back');
+        if ($daysBack) {
+            $date = Carbon::now()->subDays($daysBack)->format('d-M-Y');
+            $searchCriteria = "SINCE \"{$date}\"";
+        }
+        
+        Log::info("Search criteria (ALL): {$searchCriteria}");
+        
+        // Search for emails matching criteria
+        $emailIds = imap_search($mailbox, $searchCriteria);
+
+        if (!$emailIds) {
+            Log::info("⚠ No emails found in mailbox");
+            return [];
+        }
+
+        Log::info("Found " . count($emailIds) . " total emails from IMAP search");
+
+        // Limit processing (agar tidak overload)
+        $limit = config('mail.imap.fetch_limit', 50);
+        $emailIds = array_slice($emailIds, 0, $limit);
+        
+        Log::info("Processing " . count($emailIds) . " emails (limit: {$limit})");
+
+        foreach ($emailIds as $emailId) {
+            try {
+                $header = imap_headerinfo($mailbox, $emailId);
+                $structure = imap_fetchstructure($mailbox, $emailId);
+                $body = $this->getEmailBody($mailbox, $emailId, $structure);
+
+                // Extract email data
+                $from = $header->from[0];
+                $fromEmail = $from->mailbox . '@' . $from->host;
+                $fromName = isset($from->personal) ? $this->decodeEmailText($from->personal) : $fromEmail;
+
+                $to = isset($header->to[0]) ? $header->to[0]->mailbox . '@' . $header->to[0]->host : '';
+                
+                $cc = '';
+                if (isset($header->cc)) {
+                    $ccAddresses = array_map(function($c) {
+                        return $c->mailbox . '@' . $c->host;
+                    }, $header->cc);
+                    $cc = implode(', ', $ccAddresses);
+                }
+
+                $subject = isset($header->subject) ? $this->decodeEmailText($header->subject) : '(No Subject)';
+                $date = isset($header->date) ? Carbon::parse($header->date) : Carbon::now();
+                $messageId = isset($header->message_id) ? $header->message_id : "email-{$emailId}-" . time();
+
+                $emailData = [
+                    'message_id' => $messageId,
+                    'from' => $fromEmail,
+                    'from_name' => $fromName,
+                    'to' => $to,
+                    'cc' => $cc,
+                    'subject' => $subject,
+                    'body' => $body,
+                    'date' => $date,
+                ];
+
+                // Validasi email sebelum simpan
+                if ($this->isValidEmail($emailData)) {
+                    $emails[$emailId] = $emailData;
+                } else {
+                    Log::info('Email skipped (did not pass validation)', [
+                        'from' => $fromEmail,
+                        'to' => $to,
+                        'subject' => $subject,
+                    ]);
+                }
+            } catch (\Exception $e) {
+                Log::error('Failed to parse email', ['email_id' => $emailId, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $emails;
+    }
+
+    /**
      * Validasi apakah email sesuai kriteria untuk diproses
      */
     protected function isValidEmail(array $emailData): bool
     {
-        // 1. Filter by sender domain
+        // 1. Check blacklist sender email (exact match) - PRIORITY!
+        if ($this->isBlacklistedSender($emailData['from'])) {
+            Log::info("Email filtered: Sender in blacklist ({$emailData['from']})");
+            return false;
+        }
+
+        // 2. Check blacklist subject keywords - PRIORITY!
+        if ($this->hasBlacklistedSubjectKeywords($emailData['subject'])) {
+            Log::info("Email filtered: Subject contains blacklisted keyword");
+            return false;
+        }
+
+        // 3. Filter by sender domain
         if (!$this->isValidSenderDomain($emailData['from'])) {
             Log::info("Email filtered: Invalid sender domain ({$emailData['from']})");
             return false;
         }
 
-        // 2. Filter by recipient (pastikan dikirim ke inbox yang benar)
+        // 4. Filter by recipient (pastikan dikirim ke inbox yang benar)
         if (!$this->isValidRecipient($emailData['to'], $emailData['cc'])) {
             Log::info("Email filtered: Not sent to valid recipient");
             return false;
         }
 
-        // 3. Filter spam/auto-reply
+        // 5. Filter spam/auto-reply
         if ($this->isSpamOrAutoReply($emailData['subject'], $emailData['body'])) {
             Log::info("Email filtered: Detected as spam/auto-reply");
             return false;
         }
 
-        // 4. Filter by subject keywords (optional)
+        // 6. Filter by subject keywords (optional)
         if (!$this->hasValidSubjectKeywords($emailData['subject'])) {
             Log::info("Email filtered: Subject doesn't match keywords");
             return false;
         }
 
-        // 5. Filter by minimum content length
+        // 7. Filter by minimum content length
         if (!$this->hasValidContentLength($emailData['body'])) {
             Log::info("Email filtered: Content too short");
             return false;
@@ -604,7 +922,7 @@ class EmailFetcherService
     }
 
     /**
-     * Check apakah sender domain valid
+     * Check apakah sender email valid
      */
     protected function isValidSenderDomain(string $email): bool
     {
@@ -620,6 +938,49 @@ class EmailFetcherService
 
         // Check if domain in whitelist
         return in_array($domain, $allowedDomains);
+    }
+
+    /**
+     * Check apakah sender email ada di blacklist (exact match)
+     */
+    protected function isBlacklistedSender(string $email): bool
+    {
+        $blacklistSenders = config('mail.imap.blacklist_sender_emails', []);
+        
+        // Jika tidak ada blacklist, allow all
+        if (empty($blacklistSenders)) {
+            return false;
+        }
+
+        // Case-insensitive comparison
+        $email = strtolower($email);
+        $blacklistSenders = array_map('strtolower', $blacklistSenders);
+
+        return in_array($email, $blacklistSenders);
+    }
+
+    /**
+     * Check apakah subject mengandung blacklisted keywords
+     */
+    protected function hasBlacklistedSubjectKeywords(string $subject): bool
+    {
+        $blacklistKeywords = config('mail.imap.blacklist_subject_keywords', []);
+        
+        // Jika tidak ada blacklist, allow all
+        if (empty($blacklistKeywords)) {
+            return false;
+        }
+
+        $subject = strtolower($subject);
+
+        // Check if any blacklisted keyword in subject
+        foreach ($blacklistKeywords as $keyword) {
+            if (stripos($subject, strtolower($keyword)) !== false) {
+                return true; // Found blacklisted keyword
+            }
+        }
+
+        return false;
     }
 
     /**

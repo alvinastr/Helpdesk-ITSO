@@ -68,6 +68,101 @@
         </div>
     </div>
 
+    <!-- Email Auto-Fetch Statistics -->
+    @if(isset($emailStats) && $emailStats['last_fetch'])
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-envelope-open-text me-2"></i>
+                        Email Auto-Fetch Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Last Fetch Info -->
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6 class="text-muted">Last Fetch</h6>
+                                <p class="h5">{{ $emailStats['last_fetch']->fetch_started_at->diffForHumans() }}</p>
+                                <small class="text-muted">
+                                    {{ $emailStats['last_fetch']->fetch_started_at->format('d/m/Y H:i') }}
+                                </small>
+                                <br>
+                                @if($emailStats['last_fetch']->status === 'completed')
+                                    <span class="badge bg-success mt-2">Success</span>
+                                @elseif($emailStats['last_fetch']->status === 'failed')
+                                    <span class="badge bg-danger mt-2">Failed</span>
+                                @else
+                                    <span class="badge bg-warning mt-2">Running</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Last Fetch Results -->
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6 class="text-muted">Last Fetch Results</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>✅ Success:</span>
+                                    <strong class="text-success">{{ $emailStats['last_fetch']->successful }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>⏭️ Duplicates:</span>
+                                    <strong class="text-warning">{{ $emailStats['last_fetch']->duplicates }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>❌ Failed:</span>
+                                    <strong class="text-danger">{{ $emailStats['last_fetch']->failed }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Today's Statistics -->
+                        <div class="col-md-3">
+                            <div class="stat-card">
+                                <h6 class="text-muted">Today's Stats</h6>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Total Fetched:</span>
+                                    <strong>{{ $emailStats['today']->total_fetched ?? 0 }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span>Tickets Created:</span>
+                                    <strong class="text-success">{{ $emailStats['today']->total_success ?? 0 }}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Fetch Runs:</span>
+                                    <strong>{{ $emailStats['today']->fetch_count ?? 0 }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Success Rate -->
+                        <div class="col-md-3">
+                            <div class="stat-card text-center">
+                                <h6 class="text-muted">Success Rate</h6>
+                                <div class="display-4 my-3">
+                                    <span class="@if($emailStats['last_fetch_success_rate'] >= 80) text-success @elseif($emailStats['last_fetch_success_rate'] >= 50) text-warning @else text-danger @endif">
+                                        {{ $emailStats['last_fetch_success_rate'] }}%
+                                    </span>
+                                </div>
+                                <small class="text-muted">Last fetch performance</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    @if($emailStats['last_fetch']->error_message)
+                    <div class="alert alert-danger mt-3 mb-0">
+                        <strong>Error:</strong> {{ $emailStats['last_fetch']->error_message }}
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
     <!-- Recent Tickets -->
     <div class="card">
         <div class="card-header">
