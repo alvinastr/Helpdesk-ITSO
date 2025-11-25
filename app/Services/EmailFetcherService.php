@@ -331,48 +331,97 @@ class EmailFetcherService
     }
 
     /**
-     * Get email body (handle multipart)
+     * Get email body (handle multipart with better parsing)
      */
     protected function getEmailBody($mailbox, $emailId, $structure): string
     {
         $body = '';
+        $plainBody = '';
+        $htmlBody = '';
 
         // Check if multipart
         if (isset($structure->parts) && count($structure->parts)) {
-            // Multipart email
-            foreach ($structure->parts as $partNum => $part) {
-                // Get text/plain or text/html
-                if ($part->subtype == 'PLAIN' || $part->subtype == 'HTML') {
-                    $partBody = imap_fetchbody($mailbox, $emailId, $partNum + 1);
-                    
-                    // Decode if needed
-                    if ($part->encoding == 3) {
-                        $partBody = base64_decode($partBody);
-                    } elseif ($part->encoding == 4) {
-                        $partBody = quoted_printable_decode($partBody);
-                    }
-                    
-                    $body .= $partBody;
-                    
-                    // Prefer plain text, so break if found
-                    if ($part->subtype == 'PLAIN') {
-                        break;
-                    }
-                }
+            // Multipart email - process all parts recursively
+            $this->processEmailParts($mailbox, $emailId, $structure->parts, '', $plainBody, $htmlBody);
+            
+            // Prefer plain text, fallback to HTML
+            if (!empty($plainBody)) {
+                $body = $plainBody;
+            } elseif (!empty($htmlBody)) {
+                // Strip HTML tags dari HTML body
+                $body = strip_tags($htmlBody);
             }
         } else {
-            // Simple email
+            // Simple email (not multipart)
             $body = imap_body($mailbox, $emailId);
             
             // Decode if needed
-            if ($structure->encoding == 3) {
-                $body = base64_decode($body);
-            } elseif ($structure->encoding == 4) {
-                $body = quoted_printable_decode($body);
+            if (isset($structure->encoding)) {
+                if ($structure->encoding == 3) {
+                    $body = base64_decode($body);
+                } elseif ($structure->encoding == 4) {
+                    $body = quoted_printable_decode($body);
+                } elseif ($structure->encoding == 1) {
+                    $body = imap_8bit($body);
+                }
             }
         }
 
-        return trim($body);
+        // Clean up body
+        $body = trim($body);
+        
+        // Fallback: jika body masih kosong, ambil subject sebagai body
+        if (empty($body)) {
+            $header = imap_headerinfo($mailbox, $emailId);
+            $subject = isset($header->subject) ? $this->decodeEmailText($header->subject) : '';
+            $body = "[Email with subject: {$subject}]";
+            Log::warning("Email {$emailId} has no body content, using subject as fallback");
+        }
+
+        return $body;
+    }
+
+    /**
+     * Recursively process email parts (untuk handle nested multipart)
+     */
+    protected function processEmailParts($mailbox, $emailId, $parts, $prefix, &$plainBody, &$htmlBody)
+    {
+        foreach ($parts as $partNum => $part) {
+            $currentPrefix = $prefix . ($partNum + 1);
+            
+            // Check if this part has sub-parts (nested multipart)
+            if (isset($part->parts) && count($part->parts)) {
+                $this->processEmailParts($mailbox, $emailId, $part->parts, $currentPrefix . '.', $plainBody, $htmlBody);
+                continue;
+            }
+            
+            // Get part body
+            $partBody = imap_fetchbody($mailbox, $emailId, $currentPrefix);
+            
+            if (empty($partBody)) {
+                continue;
+            }
+            
+            // Decode based on encoding
+            if (isset($part->encoding)) {
+                if ($part->encoding == 3) {
+                    $partBody = base64_decode($partBody);
+                } elseif ($part->encoding == 4) {
+                    $partBody = quoted_printable_decode($partBody);
+                } elseif ($part->encoding == 1) {
+                    $partBody = imap_8bit($partBody);
+                }
+            }
+            
+            // Collect plain text or HTML
+            if (isset($part->subtype)) {
+                if ($part->subtype == 'PLAIN') {
+                    $plainBody .= $partBody . "\n";
+                } elseif ($part->subtype == 'HTML') {
+                    $htmlBody .= $partBody;
+                }
+            }
+        }
     }
 
     /**
@@ -672,8 +721,16 @@ class EmailFetcherService
     {
         $minLength = config('mail.imap.min_content_length', 10);
         
-        // Remove whitespace untuk akurat
-        $cleanBody = trim($body);
+        // Jika min_content_length = 0, skip validation (allow all)
+        if ($minLength == 0) {
+            return true;
+        }
+        
+        // Remove whitespace dan HTML tags untuk akurat
+        $cleanBody = trim(strip_tags($body));
+        
+        // Remove multiple spaces/newlines
+        $cleanBody = preg_replace('/\s+/', ' ', $cleanBody);
         
         return strlen($cleanBody) >= $minLength;
     }
