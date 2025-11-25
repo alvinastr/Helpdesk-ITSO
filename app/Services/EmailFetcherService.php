@@ -691,7 +691,7 @@ class EmailFetcherService
             $ticketData['subject'] = $emailData['subject'];
             $ticketData['description'] = $emailData['body'];
             $ticketData['channel'] = 'email';
-            $ticketData['input_method'] = 'email_auto';
+            $ticketData['input_method'] = 'email';
             $ticketData['priority'] = 'medium';
             $ticketData['category'] = 'general';
             $ticketData['created_by_admin'] = 1;
