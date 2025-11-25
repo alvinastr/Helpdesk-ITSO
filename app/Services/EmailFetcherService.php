@@ -30,52 +30,62 @@ class EmailFetcherService
         ];
 
         try {
+            Log::info('=== Starting Email Fetch Process ===');
+            Log::info('IMAP Config', [
+                'host' => config('mail.imap.host'),
+                'port' => config('mail.imap.port'),
+            ]);
+
             // Connect ke IMAP
             $mailbox = $this->connectToMailbox();
-            
+
             if (!$mailbox) {
                 throw new \Exception('Failed to connect to mailbox');
             }
 
+            Log::info('Connected to mailbox successfully');
+
             // Get unread emails
             $emails = $this->getUnreadEmails($mailbox);
-            
-            Log::info("Found " . count($emails) . " unread emails");
+
+            Log::info('Found unread emails', ['count' => count($emails)]);
 
             foreach ($emails as $emailId => $emailData) {
                 try {
                     // Check if already processed (by message-id or unique identifier)
                     if ($this->isEmailAlreadyProcessed($emailData['message_id'])) {
-                        Log::info("Email {$emailData['message_id']} already processed, skipping");
+                        Log::info('Email already processed', ['message_id' => $emailData['message_id']]);
                         $results['skipped']++;
                         continue;
                     }
 
                     // Create ticket from email
                     $ticket = $this->createTicketFromEmail($emailData);
-                    
+
                     if ($ticket) {
                         // Mark email as read
                         $this->markEmailAsRead($mailbox, $emailId);
-                        
-                        Log::info("Created ticket {$ticket->ticket_number} from email {$emailData['message_id']}");
+
+                        Log::info('Created ticket from email', ['ticket_number' => $ticket->ticket_number, 'message_id' => $emailData['message_id']]);
                         $results['success']++;
                     } else {
+                        $errorMsg = "Failed to create ticket from: {$emailData['subject']}";
                         $results['failed']++;
+                        $results['errors'][] = $errorMsg;
+                        Log::error($errorMsg);
                     }
-
                 } catch (\Exception $e) {
-                    Log::error("Failed to process email: " . $e->getMessage());
+                    $errorMsg = "Error processing '{$emailData['subject']}': " . $e->getMessage();
+                    Log::error('Failed to process email', ['error' => $e->getMessage(), 'subject' => $emailData['subject']]);
                     $results['failed']++;
-                    $results['errors'][] = $e->getMessage();
+                    $results['errors'][] = $errorMsg;
                 }
             }
 
             // Close connection
             $this->closeMailbox($mailbox);
-
         } catch (\Exception $e) {
-            Log::error("Email fetch error: " . $e->getMessage());
+            Log::error('Email fetch error', ['error' => $e->getMessage()]);
             $results['errors'][] = $e->getMessage();
         }
 
@@ -94,28 +104,150 @@ class EmailFetcherService
         $encryption = config('mail.imap.encryption', 'ssl');
         $validateCert = config('mail.imap.validate_cert', true);
 
-        if (!$host || !$username || !$password) {
-            throw new \Exception('IMAP configuration is missing');
+        // Validasi konfigurasi dengan pesan error yang jelas
+        if (empty($host)) {
+            throw new \Exception('IMAP_HOST is not configured in .env file');
+        }
+        
+        if (empty($username)) {
+            throw new \Exception('IMAP_USERNAME is not configured in .env file');
+        }
+        
+        if (empty($password)) {
+            throw new \Exception('IMAP_PASSWORD is not configured in .env file');
         }
 
-        // Build IMAP connection string
+        // Build IMAP connection string dengan berbagai fallback options
         $certValidation = $validateCert ? '/validate-cert' : '/novalidate-cert';
-        $connectionString = "{{$host}:{$port}/imap/{$encryption}{$certValidation}}INBOX";
-
-        try {
-            $mailbox = imap_open($connectionString, $username, $password);
+        
+        // Coba berbagai kombinasi connection string untuk compatibility
+        $connectionOptions = [
+            // Option 1: SSL dengan novalidate-cert
+            ['string' => "{{$host}:{$port}/imap/ssl{$certValidation}}INBOX", 'desc' => 'SSL with novalidate-cert'],
             
-            if (!$mailbox) {
-                $error = imap_last_error();
-                throw new \Exception("IMAP connection failed: {$error}");
-            }
+            // Option 2: SSL tanpa INBOX
+            ['string' => "{{$host}:{$port}/imap/ssl{$certValidation}}", 'desc' => 'SSL to root mailbox'],
+            
+            // Option 3: SSL dengan readonly flag
+            ['string' => "{{$host}:{$port}/imap/ssl{$certValidation}/readonly}INBOX", 'desc' => 'SSL readonly'],
+            
+            // Option 4: TLS dengan STARTTLS
+            ['string' => "{{$host}:{$port}/imap/tls{$certValidation}}INBOX", 'desc' => 'TLS with STARTTLS'],
+            
+            // Option 5: Plain IMAP tanpa encryption
+            ['string' => "{{$host}:{$port}/imap{$certValidation}}INBOX", 'desc' => 'Plain IMAP no encryption'],
+            
+            // Option 6: Port 143 dengan TLS
+            ['string' => "{{$host}:143/imap/tls{$certValidation}}INBOX", 'desc' => 'Port 143 with TLS'],
+            
+            // Option 7: Port 143 plain
+            ['string' => "{{$host}:143/imap{$certValidation}}INBOX", 'desc' => 'Port 143 plain'],
+            
+            // Option 8: SSL dengan notls flag
+            ['string' => "{{$host}:{$port}/imap/ssl{$certValidation}/notls}INBOX", 'desc' => 'SSL with notls'],
+        ];
 
-            return $mailbox;
-
-        } catch (\Exception $e) {
-            Log::error("IMAP connection error: " . $e->getMessage());
-            return null;
+        // Log connection attempt (tanpa password untuk security)
+        Log::info("🔌 Attempting IMAP connection to {$host}:{$port}", [
+            'username' => $username,
+            'encryption' => $encryption,
+            'validate_cert' => $validateCert ? 'true' : 'false',
+        ]);
+        
+        // Test basic connectivity dulu
+        Log::info("Testing basic connectivity...");
+        $fp = @fsockopen($host, $port, $errno, $errstr, 5);
+        if (!$fp) {
+            throw new \Exception("Cannot connect to {$host}:{$port} - Error #{$errno}: {$errstr}");
         }
+        fclose($fp);
+        Log::info("✓ Port {$port} is reachable");
+
+        $lastError = null;
+        $connectionAttempts = [];
+        
+        // Try each connection option
+        foreach ($connectionOptions as $index => $option) {
+            $connectionString = $option['string'];
+            $desc = $option['desc'];
+            
+            try {
+                Log::info("🔄 Trying option " . ($index + 1) . "/" . count($connectionOptions) . ": {$desc}");
+                Log::info("   Connection string: " . $connectionString);
+                
+                // Clear previous IMAP errors
+                @imap_errors();
+                @imap_alerts();
+                
+                // Enable error reporting temporarily for debugging
+                $errorReporting = error_reporting();
+                error_reporting(E_ALL);
+                
+                // Attempt connection with longer timeout (3 retries, 5 second timeout each)
+                $mailbox = @imap_open($connectionString, $username, $password, 0, 3, ['DISABLE_AUTHENTICATOR' => 'GSSAPI']);
+                
+                // Restore error reporting
+                error_reporting($errorReporting);
+                
+                if ($mailbox) {
+                    Log::info("✅ SUCCESS! Connected to IMAP server using option " . ($index + 1) . ": {$desc}");
+                    return $mailbox;
+                }
+                
+                // Jika gagal, catat error detail
+                $errors = imap_errors();
+                $alerts = imap_alerts();
+                $lastError = imap_last_error();
+                
+                $errorDetail = $lastError ?: 'No error message from PHP IMAP';
+                if ($errors && is_array($errors)) {
+                    $errorDetail .= ' | ' . implode(' | ', $errors);
+                }
+                
+                $connectionAttempts[] = "Option " . ($index + 1) . " ({$desc}): {$errorDetail}";
+                
+                Log::warning("❌ Option " . ($index + 1) . " failed: {$errorDetail}");
+                if ($alerts && is_array($alerts)) {
+                    Log::warning("   Alerts: " . implode(', ', $alerts));
+                }
+                
+            } catch (\Exception $e) {
+                $errorMsg = $e->getMessage();
+                $connectionAttempts[] = "Option " . ($index + 1) . " ({$desc}): Exception - {$errorMsg}";
+                Log::warning("❌ Option " . ($index + 1) . " threw exception: {$errorMsg}");
+            }
+            
+            // Small delay between attempts
+            usleep(100000); // 0.1 second
+        }
+
+        // Semua opsi gagal
+        $errors = imap_errors();
+        $alerts = imap_alerts();
+        
+        $errorMessage = "IMAP connection failed after trying " . count($connectionOptions) . " connection methods";
+        $errorMessage .= "\n\nServer: {$host}:{$port}";
+        $errorMessage .= "\nUsername: {$username}";
+        $errorMessage .= "\n\nAttempt results:\n" . implode("\n", $connectionAttempts);
+        
+        if ($errors) {
+            $errorMessage .= "\n\nRecent IMAP errors: " . implode(', ', array_slice($errors, -3));
+        }
+        if ($alerts) {
+            $errorMessage .= "\n\nIMAP alerts: " . implode(', ', $alerts);
+        }
+        
+        $errorMessage .= "\n\n💡 Troubleshooting tips:";
+        $errorMessage .= "\n1. Verify server is reachable: telnet {$host} {$port}";
+        $errorMessage .= "\n2. Check if username/password is correct";
+        $errorMessage .= "\n3. Try connecting with desktop email client (Thunderbird/Outlook)";
+        $errorMessage .= "\n4. Verify PHP IMAP extension is properly installed: php -m | grep imap";
+        $errorMessage .= "\n5. Check if server requires different port (143 for non-SSL)";
+        
+        Log::error("✗ All IMAP connection attempts failed");
+        Log::error($errorMessage);
+        
+        throw new \Exception($errorMessage);
     }
 
     /**
@@ -128,16 +260,23 @@ class EmailFetcherService
         // Build search criteria dengan filter
         $searchCriteria = $this->buildSearchCriteria();
         
+        Log::info("Search criteria: {$searchCriteria}");
+        
         // Search for emails matching criteria
         $emailIds = imap_search($mailbox, $searchCriteria);
 
         if (!$emailIds) {
+            Log::info("⚠ No unread emails found in mailbox");
             return [];
         }
+
+        Log::info("Found " . count($emailIds) . " unread emails from IMAP search");
 
         // Limit processing (agar tidak overload)
         $limit = config('mail.imap.fetch_limit', 50);
         $emailIds = array_slice($emailIds, 0, $limit);
+        
+        Log::info("Processing " . count($emailIds) . " emails (limit: {$limit})");
 
         foreach ($emailIds as $emailId) {
             try {
@@ -256,7 +395,7 @@ class EmailFetcherService
      */
     protected function isEmailAlreadyProcessed($messageId): bool
     {
-        return Ticket::where('email_metadata->message_id', $messageId)->exists();
+        return Ticket::where('email_message_id', $messageId)->exists();
     }
 
     /**
@@ -265,54 +404,52 @@ class EmailFetcherService
     protected function createTicketFromEmail(array $emailData): ?Ticket
     {
         try {
-            // Build raw email format untuk parser
-            $rawEmail = $this->buildRawEmailFormat($emailData);
+            $autoNip = 'AUTO-' . substr(md5($emailData['from']), 0, 8);
+            $emailHeaders = json_encode(array(
+                'from' => $emailData['from'],
+                'to' => $emailData['to'],
+                'cc' => $emailData['cc'],
+                'subject' => $emailData['subject'],
+                'message_id' => $emailData['message_id']
+            ));
             
-            // Parse email using existing parser
-            $parsed = $this->emailParser->parseEmailContent($rawEmail);
-            
-            // Prepare ticket data
-            $ticketData = [
-                // Reporter info
-                'reporter_name' => $parsed['reporter']['name'] ?: $emailData['from_name'],
-                'reporter_email' => $parsed['reporter']['email'] ?: $emailData['from'],
-                'reporter_nip' => $parsed['reporter']['nip'] ?: 'AUTO-' . substr(md5($emailData['from']), 0, 8),
-                'reporter_phone' => '-',
-                'reporter_department' => $parsed['reporter']['department'] ?: 'Unknown',
-                
-                // Ticket info
-                'subject' => $parsed['ticket_subject'] ?: $emailData['subject'],
-                'description' => !empty($parsed['emails']) ? $parsed['emails'][0]['body'] : $emailData['body'],
-                'channel' => 'email',
-                'input_method' => 'email_auto',
-                'priority' => 'medium', // Could be auto-detected
-                'category' => 'general', // Could be auto-detected
-                
-                // Email metadata
-                'email_from' => $emailData['from'],
-                'email_to' => $emailData['to'],
-                'email_cc' => $emailData['cc'],
-                'email_subject' => $emailData['subject'],
-                'email_body_original' => $emailData['body'],
-                
-                // KPI timestamps
-                'email_received_at' => $emailData['date'],
-                
-                // Store message_id untuk prevent duplicate
-                'email_metadata' => [
-                    'message_id' => $emailData['message_id'],
-                    'auto_created' => true,
-                    'created_via' => 'imap_fetch',
-                ],
-            ];
+            $ticketData = array();
+            $ticketData['reporter_name'] = $emailData['from_name'];
+            $ticketData['reporter_email'] = $emailData['from'];
+            $ticketData['reporter_nip'] = $autoNip;
+            $ticketData['reporter_phone'] = '-';
+            $ticketData['reporter_department'] = 'Auto-created from Email';
+            $ticketData['user_name'] = $emailData['from_name'];
+            $ticketData['user_email'] = $emailData['from'];
+            $ticketData['user_phone'] = '-';
+            $ticketData['subject'] = $emailData['subject'];
+            $ticketData['description'] = $emailData['body'];
+            $ticketData['channel'] = 'email';
+            $ticketData['input_method'] = 'email_auto';
+            $ticketData['priority'] = 'medium';
+            $ticketData['category'] = 'general';
+            $ticketData['created_by_admin'] = 1;
+            $ticketData['email_from'] = $emailData['from'];
+            $ticketData['email_to'] = $emailData['to'];
+            $ticketData['email_cc'] = $emailData['cc'];
+            $ticketData['email_subject'] = $emailData['subject'];
+            $ticketData['email_body_original'] = $emailData['body'];
+            $ticketData['original_message'] = $emailData['body'];
+            $ticketData['email_message_id'] = $emailData['message_id'];
+            $ticketData['sender_email'] = $emailData['from'];
+            $ticketData['email_received_at'] = $emailData['date'];
+            $ticketData['email_headers'] = $emailHeaders;
 
-            // Create ticket via service
             $ticket = $this->ticketService->createTicketByAdmin($ticketData);
 
             return $ticket;
 
         } catch (\Exception $e) {
-            Log::error("Failed to create ticket from email: " . $e->getMessage());
+            $errorData = array();
+            $errorData['email_subject'] = isset($emailData['subject']) ? $emailData['subject'] : 'N/A';
+            $errorData['email_from'] = isset($emailData['from']) ? $emailData['from'] : 'N/A';
+            $errorData['trace'] = $e->getTraceAsString();
+            Log::error("Failed to create ticket from email: " . $e->getMessage(), $errorData);
             return null;
         }
     }
@@ -540,4 +677,38 @@ class EmailFetcherService
         
         return strlen($cleanBody) >= $minLength;
     }
+
+    /**
+     * Test network connectivity ke IMAP host sebelum koneksi
+     */
+    protected function testNetworkConnectivity(string $host, int $port): void
+    {
+        Log::info("Testing network connectivity to {$host}:{$port}...");
+        
+        // Test 1: Ping host (DNS resolution)
+        $dnsResolved = gethostbyname($host);
+        if ($dnsResolved === $host && !filter_var($host, FILTER_VALIDATE_IP)) {
+            Log::warning("⚠ DNS resolution failed for {$host}");
+            throw new \Exception("Cannot resolve hostname: {$host}. Check if IMAP_HOST is correct.");
+        }
+        Log::info("✓ DNS resolved: {$host} -> {$dnsResolved}");
+        
+        // Test 2: Port connectivity
+        $connection = @fsockopen($host, $port, $errno, $errstr, 5);
+        if (!$connection) {
+            Log::error("✗ Cannot connect to {$host}:{$port} - Error #{$errno}: {$errstr}");
+            throw new \Exception(
+                "Cannot connect to IMAP server at {$host}:{$port}. " .
+                "Possible causes: " .
+                "1) Server is down or unreachable, " .
+                "2) Firewall blocking port {$port}, " .
+                "3) Wrong host/port configuration, " .
+                "4) Not connected to VPN/internal network (if required). " .
+                "Error: {$errstr}"
+            );
+        }
+        fclose($connection);
+        Log::info("✓ Port {$port} is reachable on {$host}");
+    }
 }
+

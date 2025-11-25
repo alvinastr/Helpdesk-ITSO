@@ -229,9 +229,10 @@ class TicketService
             }
 
             // Step 4: Create initial thread
+            $adminName = Auth::check() ? Auth::user()->name : 'System Auto-Fetch';
             $this->addThreadMessage($ticket, [
                 'sender_type' => 'admin',
-                'sender_name' => Auth::user()->name,
+                'sender_name' => $adminName,
                 'message_type' => 'note',
                 'message' => "Ticket dibuat oleh admin atas nama: {$data['reporter_name']} (NIP: {$data['reporter_nip']})"
             ]);
