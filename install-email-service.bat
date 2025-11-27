@@ -22,23 +22,37 @@ if %errorLevel% NEQ 0 (
 )
 
 echo [1/5] Checking NSSM installation...
-if not exist "C:\nssm\nssm.exe" (
-    echo.
-    echo NSSM belum terinstall!
-    echo.
-    echo Download NSSM dari: https://nssm.cc/download
-    echo Extract ke: C:\nssm\
-    echo.
-    echo Atau jalankan PowerShell sebagai Admin:
-    echo   Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile nssm.zip
-    echo   Expand-Archive nssm.zip -DestinationPath C:\
-    echo   Rename-Item C:\nssm-2.24 C:\nssm
-    echo.
-    pause
-    exit /b 1
+if exist "C:\nssm\nssm.exe" (
+    echo [OK] NSSM found at C:\nssm\nssm.exe
+    set NSSM_PATH=C:\nssm\nssm.exe
+    goto :nssm_ok
 )
 
-echo [OK] NSSM found at C:\nssm\nssm.exe
+:: Try System32
+where nssm.exe >nul 2>&1
+if %errorLevel% EQU 0 (
+    echo [OK] NSSM found in System32
+    set NSSM_PATH=nssm.exe
+    goto :nssm_ok
+)
+
+:: NSSM not found
+echo.
+echo NSSM belum terinstall!
+echo.
+echo Download NSSM dari: https://nssm.cc/download
+echo.
+echo Setelah extract ZIP, akan ada folder: win32, win64, win64-arm64
+echo Pilih sesuai Windows Anda:
+echo   - Windows 64-bit: win64\nssm.exe  (paling umum)
+echo   - Windows 32-bit: win32\nssm.exe
+echo.
+echo Copy file nssm.exe ke: C:\nssm\nssm.exe
+echo.
+pause
+exit /b 1
+
+:nssm_ok
 echo.
 
 echo [2/5] Checking project path...
@@ -62,32 +76,32 @@ echo [OK] PHP found
 echo.
 
 echo [4/5] Installing service...
-C:\nssm\nssm.exe stop ITSOEmailFetch >nul 2>&1
-C:\nssm\nssm.exe remove ITSOEmailFetch confirm >nul 2>&1
+%NSSM_PATH% stop ITSOEmailFetch >nul 2>&1
+%NSSM_PATH% remove ITSOEmailFetch confirm >nul 2>&1
 
-C:\nssm\nssm.exe install ITSOEmailFetch "C:\laragon\bin\php\php-8.3.26\php.exe"
-C:\nssm\nssm.exe set ITSOEmailFetch AppDirectory "C:\laragon\www\ITSO"
-C:\nssm\nssm.exe set ITSOEmailFetch AppParameters "artisan emails:fetch-daemon --interval=300"
-C:\nssm\nssm.exe set ITSOEmailFetch DisplayName "ITSO Email Auto-Fetch Service"
-C:\nssm\nssm.exe set ITSOEmailFetch Description "Automatically fetch emails and create tickets for ITSO Helpdesk"
-C:\nssm\nssm.exe set ITSOEmailFetch Start SERVICE_AUTO_START
-C:\nssm\nssm.exe set ITSOEmailFetch AppStdout "C:\laragon\www\ITSO\storage\logs\email-daemon.log"
-C:\nssm\nssm.exe set ITSOEmailFetch AppStderr "C:\laragon\www\ITSO\storage\logs\email-daemon-error.log"
+%NSSM_PATH% install ITSOEmailFetch "C:\laragon\bin\php\php-8.3.26\php.exe"
+%NSSM_PATH% set ITSOEmailFetch AppDirectory "C:\laragon\www\ITSO"
+%NSSM_PATH% set ITSOEmailFetch AppParameters "artisan emails:fetch-daemon --interval=300"
+%NSSM_PATH% set ITSOEmailFetch DisplayName "ITSO Email Auto-Fetch Service"
+%NSSM_PATH% set ITSOEmailFetch Description "Automatically fetch emails and create tickets for ITSO Helpdesk"
+%NSSM_PATH% set ITSOEmailFetch Start SERVICE_AUTO_START
+%NSSM_PATH% set ITSOEmailFetch AppStdout "C:\laragon\www\ITSO\storage\logs\email-daemon.log"
+%NSSM_PATH% set ITSOEmailFetch AppStderr "C:\laragon\www\ITSO\storage\logs\email-daemon-error.log"
 
 :: Auto-restart on failure
-C:\nssm\nssm.exe set ITSOEmailFetch AppExit Default Restart
-C:\nssm\nssm.exe set ITSOEmailFetch AppRestartDelay 5000
+%NSSM_PATH% set ITSOEmailFetch AppExit Default Restart
+%NSSM_PATH% set ITSOEmailFetch AppRestartDelay 5000
 
 echo [OK] Service installed
 echo.
 
 echo [5/5] Starting service...
-C:\nssm\nssm.exe start ITSOEmailFetch
+%NSSM_PATH% start ITSOEmailFetch
 
 timeout /t 3 >nul
 
 :: Check status
-C:\nssm\nssm.exe status ITSOEmailFetch
+%NSSM_PATH% status ITSOEmailFetch
 echo.
 
 echo ========================================

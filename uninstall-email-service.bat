@@ -20,11 +20,25 @@ if %errorLevel% NEQ 0 (
     exit /b 1
 )
 
+:: Find NSSM
+if exist "C:\nssm\nssm.exe" (
+    set NSSM_PATH=C:\nssm\nssm.exe
+) else (
+    where nssm.exe >nul 2>&1
+    if %errorLevel% EQU 0 (
+        set NSSM_PATH=nssm.exe
+    ) else (
+        echo ERROR: NSSM not found!
+        pause
+        exit /b 1
+    )
+)
+
 echo Stopping service...
-C:\nssm\nssm.exe stop ITSOEmailFetch
+%NSSM_PATH% stop ITSOEmailFetch
 
 echo Removing service...
-C:\nssm\nssm.exe remove ITSOEmailFetch confirm
+%NSSM_PATH% remove ITSOEmailFetch confirm
 
 echo.
 echo ========================================

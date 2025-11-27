@@ -21,11 +21,46 @@ NSSM (Non-Sucking Service Manager) adalah tool untuk membuat Windows Service dar
 1. **Download NSSM:** https://nssm.cc/download
    - Download `nssm-2.24.zip` (atau versi terbaru)
 
-2. **Extract ke C:\nssm**
-   - Extract file zip
-   - Copy folder `nssm-2.24` ke `C:\`
-   - Rename jadi `C:\nssm`
-   - Pastikan ada file `C:\nssm\nssm.exe`
+2. **Extract file ZIP**
+   - Extract file zip, akan ada folder `nssm-2.24`
+   - Di dalam folder ada 3 subfolder: `win32`, `win64`, `win64-arm64`
+
+3. **Pilih folder sesuai Windows Anda:**
+   - **Windows 64-bit** (paling umum) → Gunakan `win64\nssm.exe`
+   - **Windows 32-bit** → Gunakan `win32\nssm.exe`
+   - **Windows ARM** → Gunakan `win64-arm64\nssm.exe`
+
+4. **Setup NSSM:**
+   
+   **Opsi A - Copy ke System32 (Recommended):**
+   ```powershell
+   # Buka PowerShell sebagai Administrator
+   # Untuk Windows 64-bit (paling umum):
+   copy C:\Users\[USER]\Downloads\nssm-2.24\win64\nssm.exe C:\Windows\System32\
+   
+   # Test apakah berhasil:
+   nssm --version
+   ```
+   
+   **Opsi B - Setup ke folder C:\nssm:**
+   ```powershell
+   # Copy file yang sesuai ke C:\nssm
+   mkdir C:\nssm
+   copy C:\Users\[USER]\Downloads\nssm-2.24\win64\nssm.exe C:\nssm\
+   
+   # Pastikan ada file
+   dir C:\nssm\nssm.exe
+   ```
+
+5. **Cek instalasi:**
+   ```powershell
+   # Buka PowerShell baru dan test:
+   C:\nssm\nssm.exe --version
+   # Atau jika sudah di System32:
+   nssm --version
+   ```
+   
+   Jika muncul versi NSSM, berarti sudah berhasil! ✅
 
 ### Cara 2: PowerShell (Otomatis)
 
@@ -33,22 +68,30 @@ NSSM (Non-Sucking Service Manager) adalah tool untuk membuat Windows Service dar
 # Jalankan PowerShell sebagai Administrator
 # Klik kanan PowerShell > Run as Administrator
 
-# Download dan extract NSSM
+# Download NSSM
 Invoke-WebRequest -Uri https://nssm.cc/release/nssm-2.24.zip -OutFile $env:TEMP\nssm.zip
-Expand-Archive $env:TEMP\nssm.zip -DestinationPath C:\ -Force
 
-# Rename folder
-if (Test-Path "C:\nssm-2.24") {
-    if (Test-Path "C:\nssm") { Remove-Item "C:\nssm" -Recurse -Force }
-    Rename-Item "C:\nssm-2.24" "C:\nssm"
-}
+# Extract
+Expand-Archive $env:TEMP\nssm.zip -DestinationPath $env:TEMP -Force
+
+# Pilih versi yang sesuai (64-bit paling umum)
+$nssmSource = "$env:TEMP\nssm-2.24\win64\nssm.exe"
+
+# Copy ke C:\nssm
+New-Item -ItemType Directory -Path "C:\nssm" -Force
+Copy-Item $nssmSource -Destination "C:\nssm\nssm.exe" -Force
 
 # Verify
 if (Test-Path "C:\nssm\nssm.exe") {
-    Write-Host "✅ NSSM installed successfully!" -ForegroundColor Green
+    Write-Host "✅ NSSM installed successfully at C:\nssm\nssm.exe" -ForegroundColor Green
+    & "C:\nssm\nssm.exe" --version
 } else {
     Write-Host "❌ Installation failed" -ForegroundColor Red
 }
+
+# Cleanup
+Remove-Item $env:TEMP\nssm.zip -Force
+Remove-Item "$env:TEMP\nssm-2.24" -Recurse -Force
 ```
 
 ---
