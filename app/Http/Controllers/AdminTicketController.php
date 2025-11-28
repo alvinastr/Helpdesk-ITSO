@@ -231,8 +231,7 @@ class AdminTicketController extends Controller
             // Recent tickets
             $recentTickets = Ticket::with(['threads'])
                 ->orderBy('created_at', 'desc')
-                ->limit(10)
-                ->get();
+                ->paginate(20);
 
             // Tickets by category
             $ticketsByCategory = Ticket::select('category', DB::raw('count(*) as count'))

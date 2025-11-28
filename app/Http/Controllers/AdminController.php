@@ -34,8 +34,7 @@ class AdminController extends Controller
 
         $recentTickets = Ticket::with('user')
             ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate(20);
 
         return view('admin.dashboard', compact('stats', 'recentTickets'));
     }

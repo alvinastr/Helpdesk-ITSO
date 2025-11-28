@@ -546,6 +546,7 @@ class EmailFetcherService
     protected function findRelatedTicket(array $emailData): ?Ticket
     {
         $subject = $emailData['subject'];
+        $fromEmail = $emailData['from'];
         
         // Remove common email prefixes and status markers
         $cleanedSubject = $subject;
@@ -563,9 +564,19 @@ class EmailFetcherService
             return null;
         }
         
+        // IMPORTANT: Minimum subject length untuk avoid false positives
+        if (strlen($cleanedSubject) < 15) {
+            Log::info("Subject too short for threading, creating new ticket", [
+                'cleaned_subject' => $cleanedSubject,
+                'length' => strlen($cleanedSubject)
+            ]);
+            return null;
+        }
+        
         Log::info("Looking for related ticket", [
             'original_subject' => $subject,
-            'cleaned_subject' => $cleanedSubject
+            'cleaned_subject' => $cleanedSubject,
+            'from' => $fromEmail
         ]);
         
         // Try multiple strategies to find related ticket
@@ -576,29 +587,37 @@ class EmailFetcherService
             ->orderBy('created_at', 'desc')
             ->first();
             
-        // Strategy 2: Match with status markers removed from both sides
+        // Strategy 2: Exact match with strict similarity (70% minimum)
         if (!$ticket) {
-            $ticket = Ticket::where(function($query) use ($cleanedSubject) {
-                $query->where('subject', 'LIKE', '%' . $cleanedSubject . '%')
-                      ->orWhereRaw('REPLACE(REPLACE(subject, "[Resolved] ", ""), "[In Progress] ", "") LIKE ?', ['%' . $cleanedSubject . '%']);
-            })
-            ->orderBy('created_at', 'desc')
-            ->first();
-        }
-        
-        // Strategy 3: Remove common ID patterns and try fuzzy match
-        if (!$ticket) {
-            // Remove patterns like "ICON#72Wc3A" or "(SID 01000011202)"
-            $coreSubject = preg_replace('/\s*\(.*?\)\s*|\s*ICON#\w+\s*/', '', $cleanedSubject);
-            $coreSubject = trim($coreSubject);
-            
-            if (strlen($coreSubject) > 10) { // Only if we have meaningful text left
-                $ticket = Ticket::where(function($query) use ($coreSubject) {
-                    $query->where('subject', 'LIKE', '%' . $coreSubject . '%')
-                          ->orWhereRaw('REPLACE(REPLACE(subject, "[Resolved] ", ""), "[In Progress] ", "") LIKE ?', ['%' . $coreSubject . '%']);
-                })
+            $potentialTickets = Ticket::where('subject', 'LIKE', '%' . substr($cleanedSubject, 0, 20) . '%')
+                ->where('created_at', '>=', now()->subDays(30)) // Only last 30 days
                 ->orderBy('created_at', 'desc')
-                ->first();
+                ->limit(5)
+                ->get();
+                
+            foreach ($potentialTickets as $potentialTicket) {
+                // Calculate similarity
+                similar_text(strtolower($cleanedSubject), strtolower($potentialTicket->subject), $percent);
+                
+                if ($percent >= 70) {
+                    // Additional check: sender should match (same email or same domain)
+                    $ticketEmail = $potentialTicket->email_from ?? $potentialTicket->reporter_email;
+                    if ($ticketEmail) {
+                        $senderDomain = substr(strrchr($fromEmail, '@'), 1);
+                        $ticketDomain = substr(strrchr($ticketEmail, '@'), 1);
+                        
+                        // Match if same email OR same domain
+                        if (strtolower($fromEmail) === strtolower($ticketEmail) || 
+                            strtolower($senderDomain) === strtolower($ticketDomain)) {
+                            $ticket = $potentialTicket;
+                            Log::info("Found related ticket via similarity", [
+                                'similarity' => $percent,
+                                'ticket_number' => $ticket->ticket_number
+                            ]);
+                            break;
+                        }
+                    }
+                }
             }
         }
             
@@ -606,11 +625,13 @@ class EmailFetcherService
             Log::info("Found related ticket for reply", [
                 'cleaned_subject' => $cleanedSubject,
                 'ticket_number' => $ticket->ticket_number,
-                'ticket_subject' => $ticket->subject
+                'ticket_subject' => $ticket->subject,
+                'from_email' => $fromEmail
             ]);
         } else {
-            Log::info("No related ticket found", [
-                'cleaned_subject' => $cleanedSubject
+            Log::info("No related ticket found, creating new", [
+                'cleaned_subject' => $cleanedSubject,
+                'from' => $fromEmail
             ]);
         }
         

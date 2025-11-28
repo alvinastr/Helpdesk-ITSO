@@ -56,8 +56,8 @@ exit /b 1
 echo.
 
 echo [2/5] Checking project path...
-if not exist "C:\laragon\www\ITSO\artisan" (
-    echo ERROR: Project tidak ditemukan di C:\laragon\www\ITSO
+if not exist "C:\laragon\www\services-itso\artisan" (
+    echo ERROR: Project tidak ditemukan di C:\laragon\www\services-itso
     echo Pastikan path project sudah benar!
     pause
     exit /b 1
@@ -66,7 +66,7 @@ echo [OK] Project found
 echo.
 
 echo [3/5] Checking PHP...
-if not exist "C:\laragon\bin\php\php-8.3.26\php.exe" (
+if not exist "C:\laragon\bin\php\php-8.3.26-Win32-vs16-x64\php.exe" (
     echo ERROR: PHP tidak ditemukan!
     echo Update path di script ini sesuai versi PHP Anda
     pause
@@ -79,14 +79,14 @@ echo [4/5] Installing service...
 %NSSM_PATH% stop ITSOEmailFetch >nul 2>&1
 %NSSM_PATH% remove ITSOEmailFetch confirm >nul 2>&1
 
-%NSSM_PATH% install ITSOEmailFetch "C:\laragon\bin\php\php-8.3.26\php.exe"
-%NSSM_PATH% set ITSOEmailFetch AppDirectory "C:\laragon\www\ITSO"
+%NSSM_PATH% install ITSOEmailFetch "C:\laragon\bin\php\php-8.3.26-Win32-vs16-x64\php.exe"
+%NSSM_PATH% set ITSOEmailFetch AppDirectory "C:\laragon\www\services-itso"
 %NSSM_PATH% set ITSOEmailFetch AppParameters "artisan emails:fetch-daemon --interval=300"
 %NSSM_PATH% set ITSOEmailFetch DisplayName "ITSO Email Auto-Fetch Service"
 %NSSM_PATH% set ITSOEmailFetch Description "Automatically fetch emails and create tickets for ITSO Helpdesk"
 %NSSM_PATH% set ITSOEmailFetch Start SERVICE_AUTO_START
-%NSSM_PATH% set ITSOEmailFetch AppStdout "C:\laragon\www\ITSO\storage\logs\email-daemon.log"
-%NSSM_PATH% set ITSOEmailFetch AppStderr "C:\laragon\www\ITSO\storage\logs\email-daemon-error.log"
+%NSSM_PATH% set ITSOEmailFetch AppStdout "C:\laragon\www\services-itso\storage\logs\email-daemon.log"
+%NSSM_PATH% set ITSOEmailFetch AppStderr "C:\laragon\www\services-itso\storage\logs\email-daemon-error.log"
 
 :: Auto-restart on failure
 %NSSM_PATH% set ITSOEmailFetch AppExit Default Restart
@@ -112,8 +112,8 @@ echo Service Name: ITSOEmailFetch
 echo Status: Running
 echo.
 echo Logs tersimpan di:
-echo   - C:\laragon\www\ITSO\storage\logs\email-daemon.log
-echo   - C:\laragon\www\ITSO\storage\logs\email-daemon-error.log
+echo   - C:\laragon\www\services-itso\storage\logs\email-daemon.log
+echo   - C:\laragon\www\services-itso\storage\logs\email-daemon-error.log
 echo.
 echo Service akan AUTO-START setiap kali PC restart
 echo (bahkan sebelum user login!)

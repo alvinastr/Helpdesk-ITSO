@@ -219,6 +219,9 @@
                         @endforeach
                     </tbody>
                 </table>
+                <div class="mt-3">
+                    {{ $recentTickets->links() }}
+                </div>
             </div>
         </div>
     </div>

@@ -39,8 +39,7 @@ class HomeController extends Controller
 
         $recent_tickets = Ticket::where('user_id', $user->id)
             ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
+            ->paginate(20);
 
         return view('dashboard', compact('stats', 'recent_tickets'));
     }

@@ -15,7 +15,7 @@ echo Press Ctrl+C to stop
 echo.
 
 :: Pindah ke direktori project
-cd /d C:\laragon\www\ITSO
+cd /d C:\laragon\www\services-itso
 
 :: Clear cache dulu (sekali saja saat start)
 php artisan config:clear

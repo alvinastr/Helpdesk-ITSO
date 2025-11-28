@@ -244,6 +244,9 @@
                                                 </tbody>
                                             </table>
                                         </div>
+                                        <div class="mt-3">
+                                            {{ $recent_tickets->links() }}
+                                        </div>
                                         <div class="text-center">
                                             <a href="{{ route('tickets.index') }}" class="btn btn-outline-primary">
                                                 View All Tickets
