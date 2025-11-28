@@ -582,39 +582,43 @@ class EmailFetcherService
         // Try multiple strategies to find related ticket
         $ticket = null;
         
-        // Strategy 1: Exact match on cleaned subject
+        // Strategy 1: Exact match on cleaned subject (most reliable)
         $ticket = Ticket::where('subject', $cleanedSubject)
+            ->where('created_at', '>=', now()->subDays(30))
             ->orderBy('created_at', 'desc')
             ->first();
             
-        // Strategy 2: Exact match with strict similarity (70% minimum)
-        if (!$ticket) {
-            $potentialTickets = Ticket::where('subject', 'LIKE', '%' . substr($cleanedSubject, 0, 20) . '%')
-                ->where('created_at', '>=', now()->subDays(30)) // Only last 30 days
+        // Strategy 2: Very strict similarity matching (90%+ similarity AND same sender)
+        if (!$ticket && strlen($cleanedSubject) >= 30) {
+            // Only search if subject is long enough (30+ chars) to avoid false matches
+            $potentialTickets = Ticket::where('created_at', '>=', now()->subDays(30))
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
+                ->limit(20)
                 ->get();
                 
             foreach ($potentialTickets as $potentialTicket) {
                 // Calculate similarity
                 similar_text(strtolower($cleanedSubject), strtolower($potentialTicket->subject), $percent);
                 
-                if ($percent >= 70) {
-                    // Additional check: sender should match (same email or same domain)
+                // VERY STRICT: 90% similarity required
+                if ($percent >= 90) {
                     $ticketEmail = $potentialTicket->email_from ?? $potentialTicket->reporter_email;
                     if ($ticketEmail) {
-                        $senderDomain = substr(strrchr($fromEmail, '@'), 1);
-                        $ticketDomain = substr(strrchr($ticketEmail, '@'), 1);
-                        
-                        // Match if same email OR same domain
-                        if (strtolower($fromEmail) === strtolower($ticketEmail) || 
-                            strtolower($senderDomain) === strtolower($ticketDomain)) {
+                        // ONLY match if EXACT same email sender (not just domain)
+                        if (strtolower($fromEmail) === strtolower($ticketEmail)) {
                             $ticket = $potentialTicket;
-                            Log::info("Found related ticket via similarity", [
+                            Log::info("Found related ticket via strict similarity", [
                                 'similarity' => $percent,
-                                'ticket_number' => $ticket->ticket_number
+                                'ticket_number' => $ticket->ticket_number,
+                                'same_sender' => $fromEmail
                             ]);
                             break;
+                        } else {
+                            Log::info("Rejected threading: different sender", [
+                                'similarity' => $percent,
+                                'reply_from' => $fromEmail,
+                                'ticket_from' => $ticketEmail
+                            ]);
                         }
                     }
                 }

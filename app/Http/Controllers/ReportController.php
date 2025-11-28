@@ -94,17 +94,27 @@ class ReportController extends Controller
         $writer = SimpleExcelWriter::create($filePath);
 
         foreach ($tickets as $ticket) {
+            // Calculate resolution time
+            $resolutionTime = null;
+            $resolvedDate = null;
+            if (in_array($ticket->status, ['resolved', 'closed']) && $ticket->updated_at) {
+                $resolutionTime = $ticket->created_at->diffInHours($ticket->updated_at);
+                $resolvedDate = $ticket->updated_at->format('Y-m-d H:i:s');
+            }
+            
             $writer->addRow([
-                'Ticket Number' => $ticket->ticket_number,
-                'Subject' => $ticket->subject,
-                'Status' => $ticket->status,
-                'Category' => $ticket->category,
-                'Priority' => $ticket->priority,
-                'Channel' => $ticket->channel,
-                'User' => $ticket->user_name,
-                'Assigned To' => $ticket->assignedUser?->name ?? 'N/A',
-                'Created At' => $ticket->created_at->format('Y-m-d H:i:s'),
-                'Updated At' => $ticket->updated_at->format('Y-m-d H:i:s'),
+                'No. Tiket' => $ticket->ticket_number,
+                'Subjek' => $ticket->subject,
+                'Pelapor' => $ticket->reporter_name ?: $ticket->email_from ?: $ticket->user_name,
+                'Email' => $ticket->email_from ?: $ticket->reporter_email ?: '-',
+                'Status' => ucfirst(str_replace('_', ' ', $ticket->status)),
+                'Kategori' => $ticket->category ?: '-',
+                'Prioritas' => ucfirst($ticket->priority ?: 'normal'),
+                'Channel' => ucfirst($ticket->input_method ?: $ticket->channel ?: '-'),
+                'Ditangani Oleh' => $ticket->assignedUser?->name ?? 'Belum ditugaskan',
+                'Dibuat' => $ticket->created_at->format('Y-m-d H:i:s'),
+                'Diselesaikan' => $resolvedDate ?: '-',
+                'Waktu Penyelesaian (Jam)' => $resolutionTime ? number_format($resolutionTime, 1) : '-',
             ]);
         }
 

@@ -59,23 +59,35 @@
     <table>
         <thead>
             <tr>
-                <th>Ticket #</th>
-                <th>Subject</th>
-                <th>Status</th>
-                <th>Category</th>
-                <th>Priority</th>
-                <th>Created</th>
+                <th style="width: 10%;">No. Tiket</th>
+                <th style="width: 20%;">Subjek</th>
+                <th style="width: 12%;">Pelapor</th>
+                <th style="width: 8%;">Status</th>
+                <th style="width: 10%;">Kategori</th>
+                <th style="width: 8%;">Prioritas</th>
+                <th style="width: 12%;">Ditangani Oleh</th>
+                <th style="width: 10%;">Dibuat</th>
+                <th style="width: 10%;">Diselesaikan</th>
             </tr>
         </thead>
         <tbody>
             @foreach($tickets as $ticket)
+            @php
+                $resolvedDate = null;
+                if (in_array($ticket->status, ['resolved', 'closed']) && $ticket->updated_at) {
+                    $resolvedDate = $ticket->updated_at->format('Y-m-d H:i');
+                }
+            @endphp
             <tr>
                 <td>{{ $ticket->ticket_number }}</td>
-                <td>{{ $ticket->subject }}</td>
-                <td>{{ $ticket->status }}</td>
-                <td>{{ $ticket->category }}</td>
-                <td>{{ $ticket->priority }}</td>
-                <td>{{ $ticket->created_at->format('Y-m-d') }}</td>
+                <td>{{ Str::limit($ticket->subject, 40) }}</td>
+                <td>{{ $ticket->reporter_name ?: $ticket->email_from ?: $ticket->user_name }}</td>
+                <td>{{ ucfirst(str_replace('_', ' ', $ticket->status)) }}</td>
+                <td>{{ $ticket->category ?: '-' }}</td>
+                <td>{{ ucfirst($ticket->priority ?: 'normal') }}</td>
+                <td>{{ $ticket->assignedUser?->name ?? 'Belum ditugaskan' }}</td>
+                <td>{{ $ticket->created_at->format('Y-m-d H:i') }}</td>
+                <td>{{ $resolvedDate ?: '-' }}</td>
             </tr>
             @endforeach
         </tbody>
